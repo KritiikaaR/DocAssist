@@ -1,9 +1,106 @@
 import { useState, useRef, useEffect } from "react";
 import "./App.css";
+import Landing from "./Landing";
+import QuizMode from "./QuizMode";
 
 const API = "http://localhost:5000";
 
 const speechSupported = !!(window.SpeechRecognition || window.webkitSpeechRecognition);
+
+function formatTime(date) {
+  return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
+function IconSparkle(props) {
+  return (
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" {...props}>
+      <path d="M12 2l1.8 6.2L20 10l-6.2 1.8L12 18l-1.8-6.2L4 10l6.2-1.8L12 2z" />
+    </svg>
+  );
+}
+
+function IconBack(props) {
+  return (
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="M19 12H5M11 18l-6-6 6-6" />
+    </svg>
+  );
+}
+
+function IconUpload(props) {
+  return (
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="M12 16V4M7 9l5-5 5 5M5 20h14" />
+    </svg>
+  );
+}
+
+function IconSend(props) {
+  return (
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="M12 19V5M6 10l6-6 6 6" />
+    </svg>
+  );
+}
+
+function IconDownload(props) {
+  return (
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="M12 4v12M7 12l5 5 5-5M5 21h14" />
+    </svg>
+  );
+}
+
+function IconTrash(props) {
+  return (
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m-9 0 1 13a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-13" />
+      <path d="M10 11v6M14 11v6" />
+    </svg>
+  );
+}
+
+function IconMic(props) {
+  return (
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <rect x="9" y="3" width="6" height="11" rx="3" />
+      <path d="M5 11a7 7 0 0 0 14 0M12 18v3" />
+    </svg>
+  );
+}
+
+function IconClose(props) {
+  return (
+    <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" {...props}>
+      <path d="M5 5l14 14M19 5L5 19" />
+    </svg>
+  );
+}
+
+function IconRefresh(props) {
+  return (
+    <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="M4 9a8 8 0 0 1 14-4.5M20 15a8 8 0 0 1-14 4.5" />
+      <path d="M4 4v5h5M20 20v-5h-5" />
+    </svg>
+  );
+}
+
+function IconSummarize(props) {
+  return (
+    <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="M4 6h16M4 12h10M4 18h13" />
+    </svg>
+  );
+}
+
+function IconPlus(props) {
+  return (
+    <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" {...props}>
+      <path d="M12 5v14M5 12h14" />
+    </svg>
+  );
+}
 
 function SourceItem({ filename, snippet }) {
   return (
@@ -19,7 +116,7 @@ function SourceItem({ filename, snippet }) {
 
 function App() {
   const [messages, setMessages] = useState([
-    { role: "assistant", text: "Hello! I'm DocAssist. Upload any document (PDF or TXT) and ask me anything about it." }
+    { role: "assistant", text: "Hello! I'm DocAssist. Upload any document (PDF or TXT) and ask me anything about it.", time: formatTime(new Date()) }
   ]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -30,6 +127,8 @@ function App() {
   const [dragOver, setDragOver] = useState(false);
   const [suggestedQuestions, setSuggestedQuestions] = useState([]);
   const [listening, setListening] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [mode, setMode] = useState("landing");
   const bottomRef = useRef(null);
   const fileRef = useRef(null);
   const recognitionRef = useRef(null);
@@ -78,7 +177,7 @@ function App() {
   }
 
   function addMessage(role, text) {
-    setMessages(prev => [...prev, { role, text }]);
+    setMessages(prev => [...prev, { role, text, time: formatTime(new Date()) }]);
   }
 
   async function activateFromHistory(filename) {
@@ -98,15 +197,15 @@ function App() {
   }
 
   // streaming send
-  async function handleSend() {
-    const q = input.trim();
+  async function handleSend(overrideText) {
+    const q = (overrideText ?? input).trim();
     if (!q || loading) return;
     setInput("");
     setSuggestedQuestions([]);
-    setMessages(prev => [...prev, { role: "user", text: q }]);
+    setMessages(prev => [...prev, { role: "user", text: q, time: formatTime(new Date()) }]);
     setLoading(true);
 
-    setMessages(prev => [...prev, { role: "assistant", text: "", streaming: true }]);
+    setMessages(prev => [...prev, { role: "assistant", text: "", streaming: true, time: formatTime(new Date()) }]);
 
     try {
       const res = await fetch(`${API}/query`, {
@@ -132,7 +231,7 @@ function App() {
             if (json.error) {
               setMessages(prev => {
                 const updated = [...prev];
-                updated[updated.length - 1] = { role: "assistant", text: `${json.error}` };
+                updated[updated.length - 1] = { ...updated[updated.length - 1], role: "assistant", text: `${json.error}`, streaming: false };
                 return updated;
               });
             } else if (json.token) {
@@ -159,7 +258,7 @@ function App() {
     } catch {
       setMessages(prev => {
         const updated = [...prev];
-        updated[updated.length - 1] = { role: "assistant", text: "Could not reach the backend." };
+        updated[updated.length - 1] = { ...updated[updated.length - 1], role: "assistant", text: "Could not reach the backend.", streaming: false };
         return updated;
       });
     } finally {
@@ -170,8 +269,8 @@ function App() {
   // streaming summarize
   async function handleSummarize(filename) {
     setLoading(true);
-    setMessages(prev => [...prev, { role: "user", text: `Summarize: ${filename}` }]);
-    setMessages(prev => [...prev, { role: "assistant", text: "", streaming: true }]);
+    setMessages(prev => [...prev, { role: "user", text: `Summarize: ${filename}`, time: formatTime(new Date()) }]);
+    setMessages(prev => [...prev, { role: "assistant", text: "", streaming: true, time: formatTime(new Date()) }]);
 
     try {
       const res = await fetch(`${API}/summarize/${encodeURIComponent(filename)}`, { method: "POST" });
@@ -209,7 +308,7 @@ function App() {
     } catch {
       setMessages(prev => {
         const updated = [...prev];
-        updated[updated.length - 1] = { role: "assistant", text: "Could not summarize." };
+        updated[updated.length - 1] = { ...updated[updated.length - 1], role: "assistant", text: "Could not summarize.", streaming: false };
         return updated;
       });
     } finally {
@@ -242,7 +341,7 @@ function App() {
     setSessionDocs([]);
     setHistoryDocs([]);
     setActiveDocs([]);
-    setMessages([{ role: "assistant", text: "All documents cleared. Upload a new document to get started." }]);
+    setMessages([{ role: "assistant", text: "All documents cleared. Upload a new document to get started.", time: formatTime(new Date()) }]);
     fetch(`${API}/clear`, { method: "POST" });
   }
 
@@ -294,7 +393,7 @@ function App() {
       const transcript = Array.from(e.results).map(r => r[0].transcript).join("");
       setInput(baseText ? `${baseText} ${transcript}` : transcript);
     };
-    
+
     recognition.onend = () => setListening(false);
     recognition.onerror = (e) => {
       console.log("Speech error:", e.error);
@@ -306,109 +405,152 @@ function App() {
     setListening(true);
   }
 
+  if (mode === "landing") {
+    return <Landing onSelectAssist={() => setMode("assist")} onSelectQuiz={() => setMode("quiz")} />;
+  }
+
+  if (mode === "quiz") {
+    return <QuizMode onBack={() => setMode("landing")} />;
+  }
+
   return (
     <div className="app">
       {/* Sidebar */}
-      <aside className="sidebar">
-        <div className="sidebar-top">
-          <div className="logo">
-            <div className="logo-icon">⚕</div>
-            <span className="logo-text">DocAssist<br /><em>RAG Assistant</em></span>
-          </div>
+      <aside className={`sidebar ${sidebarCollapsed ? "collapsed" : ""}`}>
+        <button
+          className="sidebar-toggle"
+          onClick={() => setSidebarCollapsed(c => !c)}
+          title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+        >
+          {sidebarCollapsed ? "›" : "‹"}
+        </button>
 
-          <div
-            className={`drop-zone ${dragOver ? "drag-active" : ""} ${uploading ? "uploading" : ""}`}
-            onClick={() => !uploading && fileRef.current?.click()}
-            onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-            onDragLeave={() => setDragOver(false)}
-            onDrop={(e) => { e.preventDefault(); setDragOver(false); handleUpload(e.dataTransfer.files[0]); }}
-          >
-            <input ref={fileRef} type="file" accept=".pdf,.txt" style={{ display: "none" }}
-              onChange={(e) => handleUpload(e.target.files[0])} />
-            <div className="drop-icon">{uploading ? "⏳" : "📄"}</div>
-            <p>{uploading ? "Processing..." : "Drop PDF or TXT\nor click to upload"}</p>
-          </div>
-        </div>
+        <input ref={fileRef} type="file" accept=".pdf,.txt" style={{ display: "none" }}
+          onChange={(e) => { handleUpload(e.target.files[0]); e.target.value = ""; }} />
 
-        <div className="doc-list">
-          {/* Active session documents */}
-          <h3>Documents</h3>
-          {sessionDocs.length === 0 ? (
-            <p className="no-docs">No documents this session</p>
-          ) : (
-            <ul>
-              {sessionDocs.map((d) => (
-                <li key={d} className={activeDocs.includes(d) ? "active-doc" : "inactive-doc"}>
-                  <input type="checkbox" checked={activeDocs.includes(d)}
-                    onChange={() => toggleDoc(d)} title="Include in search" />
-                  <span className="doc-name" title={d}>{d}</span>
-                  <div className="doc-actions">
-                    <button className="summarize-btn" onClick={(e) => { e.stopPropagation(); handleSummarize(d); }} title="Summarize">∑</button>
-                    <button className="delete-btn" onClick={(e) => { e.stopPropagation(); removeDoc(d); }} title="Remove">✕</button>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
+        {!sidebarCollapsed && (
+          <>
+            <div className="sidebar-top">
+              <div className="logo">
+                <div className="logo-icon"><IconSparkle /></div>
+                <span className="logo-text">DocAssist<br /><em>RAG Assistant</em></span>
+              </div>
 
-          {/* Previous session history */}
-          {historyDocs.length > 0 && (
-            <>
-              <h3 className="history-heading">History</h3>
-              <ul className="history-list">
-                {historyDocs.map((d) => (
-                  <li key={d} className="history-item">
-                    <span className="doc-name history-name" title={d}>{d}</span>
-                    <button
-                      className="activate-btn"
-                      onClick={() => activateFromHistory(d)}
-                      title="Re-activate"
-                    >↺</button>
-                  </li>
-                ))}
-              </ul>
-            </>
-          )}
-        </div>
+              <div
+                className={`drop-zone ${dragOver ? "drag-active" : ""} ${uploading ? "uploading" : ""}`}
+                onClick={() => !uploading && fileRef.current?.click()}
+                onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                onDragLeave={() => setDragOver(false)}
+                onDrop={(e) => { e.preventDefault(); setDragOver(false); handleUpload(e.dataTransfer.files[0]); }}
+              >
+                <div className="drop-icon"><IconUpload /></div>
+                <p>{uploading ? "Processing..." : (<>Drop PDF or<br /><strong>click to upload</strong></>)}</p>
+              </div>
+            </div>
 
-        <div className="sidebar-bottom">
-          <button className="export-btn" onClick={exportChat} disabled={messages.length <= 1}>
-            ↓ Export Chat
-          </button>
-          <button className="clear-btn" onClick={handleClear}>
-            🗑 Clear All
-          </button>
-        </div>
+            <div className="doc-list">
+              {/* Active session documents */}
+              <div className="doc-list-section">
+                <h3 className="doc-list-header">Documents</h3>
+                {sessionDocs.length === 0 ? (
+                  <p className="no-docs">No documents this session</p>
+                ) : (
+                  <ul>
+                    {sessionDocs.map((d) => (
+                      <li key={d} className={activeDocs.includes(d) ? "active-doc" : "inactive-doc"}>
+                        <input type="checkbox" checked={activeDocs.includes(d)}
+                          onChange={() => toggleDoc(d)} title="Include in search" />
+                        <span className="doc-name" title={d}>{d}</span>
+                        <div className="doc-actions">
+                          <button className="summarize-btn" onClick={(e) => { e.stopPropagation(); handleSummarize(d); }} title="Summarize"><IconSummarize /></button>
+                          <button className="delete-btn" onClick={(e) => { e.stopPropagation(); removeDoc(d); }} title="Remove"><IconClose /></button>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+
+              {/* Previous session history */}
+              {historyDocs.length > 0 && (
+                <div className="doc-list-section">
+                  <h3 className="doc-list-header">History</h3>
+                  <ul className="history-list">
+                    {historyDocs.map((d) => (
+                      <li key={d} className="history-item">
+                        <span className="doc-name history-name" title={d}>{d}</span>
+                        <button
+                          className="activate-btn"
+                          onClick={() => activateFromHistory(d)}
+                          title="Re-activate"
+                        ><IconRefresh /></button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+
+            <div className="sidebar-bottom">
+              <button className="icon-btn" onClick={exportChat} disabled={messages.length <= 1} title="Export chat">
+                <IconDownload />
+              </button>
+              <button className="icon-btn danger" onClick={handleClear} title="Clear all">
+                <IconTrash />
+              </button>
+            </div>
+          </>
+        )}
       </aside>
 
       {/* Chat */}
       <main className="chat">
         <header className="chat-header">
-          <h1>Ask about your documents</h1>
-          <p>Powered by GPT-4o + LangChain + FAISS
-            {activeDocs.length > 0 && <span className="active-hint"> · {activeDocs.length} doc{activeDocs.length > 1 ? "s" : ""} active</span>}
-          </p>
+          <div className="chat-header-left">
+            <button className="back-btn" onClick={() => setMode("landing")} title="Back to mode selection">
+              <IconBack /> Back
+            </button>
+            <div>
+              <h1>Ask about your documents</h1>
+              <p>Powered by GPT-4o + LangChain + FAISS
+                {activeDocs.length > 0 && <span className="active-hint"> · {activeDocs.length} doc{activeDocs.length > 1 ? "s" : ""} active</span>}
+              </p>
+            </div>
+          </div>
+          <button
+            className="add-pdf-btn"
+            onClick={() => !uploading && fileRef.current?.click()}
+            disabled={uploading}
+            title="Upload a document"
+          >
+            <IconPlus /> Add PDF
+          </button>
         </header>
 
         <div className="messages">
           {messages.map((m, i) => (
             <div key={i} className={`msg ${m.role}`}>
-              <div className={`bubble ${m.streaming ? "streaming" : ""}`}>
-                <p>{m.text}{m.streaming && <span className="cursor">▌</span>}</p>
-                {!m.streaming && m.sources && m.sources.length > 0 && (
-                  <div className="msg-sources">
-                    <span className="sources-label">Sources</span>
-                    {m.sources.map((s, si) => (
-                      <SourceItem key={si} filename={s.filename} snippet={s.snippet} />
-                    ))}
-                  </div>
-                )}
+              <div className="msg-col">
+                <div className={`bubble ${m.streaming ? "streaming" : ""}`}>
+                  <p>{m.text}{m.streaming && <span className="cursor">▌</span>}</p>
+                  {!m.streaming && m.sources && m.sources.length > 0 && (
+                    <div className="msg-sources">
+                      <span className="sources-label">Sources</span>
+                      {m.sources.map((s, si) => (
+                        <SourceItem key={si} filename={s.filename} snippet={s.snippet} />
+                      ))}
+                    </div>
+                  )}
+                </div>
+                {m.time && <span className="msg-time">{m.time}</span>}
               </div>
             </div>
           ))}
           {loading && messages[messages.length - 1]?.role !== "assistant" && (
             <div className="msg assistant">
-              <div className="bubble typing"><span /><span /><span /></div>
+              <div className="msg-col">
+                <div className="bubble typing"><span /><span /><span /></div>
+              </div>
             </div>
           )}
           <div ref={bottomRef} />
@@ -419,10 +561,7 @@ function App() {
             <span className="suggestions-label">Try asking:</span>
             <div className="suggestions-list">
               {suggestedQuestions.map((q, i) => (
-                <button key={i} className="suggestion-chip" onClick={() => {
-                  setInput(q);
-                  setSuggestedQuestions([]);
-                }}>{q}</button>
+                <button key={i} className="suggestion-chip" onClick={() => handleSend(q)} disabled={loading}>{q}</button>
               ))}
             </div>
           </div>
@@ -439,10 +578,10 @@ function App() {
               onClick={toggleListening}
               disabled={loading}
               title={listening ? "Stop listening" : "Voice input"}
-            >🎤</button>
+            ><IconMic /></button>
           )}
           <button onClick={handleSend} disabled={loading || !input.trim()} className="send-btn">
-            {loading ? "..." : "↑"}
+            {loading ? "..." : <IconSend />}
           </button>
         </div>
       </main>

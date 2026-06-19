@@ -1,4 +1,5 @@
 import os
+import json
 import shutil
 from typing import List, Dict, Any, Generator
 
@@ -63,6 +64,47 @@ Document content:
 {context}
 
 3 questions:"""),
+])
+
+QUIZ_PROMPT = ChatPromptTemplate.from_messages([
+    ("human", """You are DocAssist, an AI that creates quizzes from document content.
+
+Using ONLY the content below, generate exactly {num_questions} quiz questions at {difficulty} difficulty.
+Allowed question types: {question_types}. Mix the types if more than one is allowed; if only one type is allowed, use only that type for every question.
+
+Rules:
+- Each question must be answerable directly from the content below.
+- For "multiple_choice" questions: provide exactly 4 options in the "options" array, and "correct_answer" must be the exact text of the correct option (not a letter like "A" or "B").
+- For "true_false" questions: do not include an "options" field; "correct_answer" must be the lowercase string "true" or "false".
+- "explanation" must briefly justify the correct answer using the content.
+- "id" values must be "q1", "q2", "q3", ... in order, with no gaps.
+- Return ONLY valid JSON. No markdown formatting, no code fences, no commentary before or after.
+
+Required JSON structure:
+{{
+  "questions": [
+    {{
+      "id": "q1",
+      "type": "multiple_choice",
+      "question": "...",
+      "options": ["A", "B", "C", "D"],
+      "correct_answer": "B",
+      "explanation": "brief explanation of why this is correct"
+    }},
+    {{
+      "id": "q2",
+      "type": "true_false",
+      "question": "...",
+      "correct_answer": "true",
+      "explanation": "..."
+    }}
+  ]
+}}
+
+Content:
+{context}
+
+JSON:"""),
 ])
 
 
@@ -275,6 +317,67 @@ class RAGPipeline:
         chain = SUMMARY_PROMPT | self.llm | StrOutputParser()
         for chunk in chain.stream({"context": context}):
             yield chunk
+
+    # ── quiz ──────────────────────────────────────────────────────────────────
+
+    def generate_quiz(self, filenames: list[str], difficulty: str, question_types: list[str], num_questions: int) -> dict:
+        if difficulty not in ("easy", "medium", "hard"):
+            raise ValueError("difficulty must be 'easy', 'medium', or 'hard'.")
+
+        valid_types = {"multiple_choice", "true_false"}
+        question_types = [t for t in (question_types or []) if t in valid_types]
+        if not question_types:
+            raise ValueError("question_types must include 'multiple_choice' and/or 'true_false'.")
+
+        if not filenames:
+            raise ValueError("Select at least one document to generate a quiz from.")
+
+        try:
+            num_questions = int(num_questions)
+        except (TypeError, ValueError):
+            num_questions = 5
+        num_questions = max(1, min(num_questions, 20))
+
+        chunks_per_doc = max(3, (num_questions * 2) // max(len(filenames), 1))
+        context_parts = []
+        for filename in filenames:
+            vs = self.vectorstores.get(filename)
+            if not vs:
+                raise ValueError(
+                    f"Document '{filename}' is not loaded. Activate it from History in Assist mode first."
+                )
+            docs = vs.similarity_search("key concepts main ideas important facts", k=chunks_per_doc)
+            for doc in docs:
+                context_parts.append(f"[Source: {filename}]\n{doc.page_content}")
+
+        context = "\n\n---\n\n".join(context_parts)
+        if not context:
+            raise ValueError("Could not retrieve content from the selected documents.")
+
+        chain = QUIZ_PROMPT | self.llm | StrOutputParser()
+        raw = chain.invoke({
+            "context": context,
+            "num_questions": num_questions,
+            "difficulty": difficulty,
+            "question_types": ", ".join(question_types),
+        })
+
+        cleaned = raw.strip()
+        if cleaned.startswith("```"):
+            cleaned = cleaned.strip("`")
+            if cleaned.lower().startswith("json"):
+                cleaned = cleaned[4:]
+            cleaned = cleaned.strip()
+
+        try:
+            quiz = json.loads(cleaned)
+        except json.JSONDecodeError as e:
+            raise ValueError(f"The AI returned malformed quiz data. Please try again. ({e})")
+
+        if not isinstance(quiz, dict) or not isinstance(quiz.get("questions"), list) or not quiz["questions"]:
+            raise ValueError("The AI returned an unexpected quiz format. Please try again.")
+
+        return quiz
 
     # ── clear ─────────────────────────────────────────────────────────────────
 

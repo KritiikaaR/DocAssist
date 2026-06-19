@@ -124,5 +124,19 @@ def clear():
     return jsonify({"message": "All documents cleared"})
 
 
+@app.route("/quiz/generate", methods=["POST"])
+def quiz_generate():
+    data = request.get_json() or {}
+    filenames = data.get("filenames", [])
+    difficulty = data.get("difficulty", "medium")
+    question_types = data.get("question_types", [])
+    num_questions = data.get("num_questions", 5)
+    try:
+        quiz = rag.generate_quiz(filenames, difficulty, question_types, num_questions)
+        return jsonify(quiz)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 if __name__ == "__main__":
     app.run(debug=True, port=5000)
