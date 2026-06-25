@@ -10,6 +10,12 @@ from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.messages import HumanMessage, AIMessage
+from langchain_core.documents import Document
+
+from pdf2image import convert_from_path
+import pytesseract
+
+MIN_WORDS_PER_PAGE = 50  # below this average, a PDF is treated as scanned/image-based
 
 VECTORSTORE_DIR = "vectorstore"
 UPLOAD_DIR = "uploads"
@@ -137,16 +143,21 @@ class RAGPipeline:
 
     # ── ingestion ─────────────────────────────────────────────────────────────
 
-    def ingest(self, filepath: str) -> tuple[int, list[str]]:
+    def ingest(self, filepath: str) -> tuple[int, list[str], bool]:
         ext = os.path.splitext(filepath)[1].lower()
+        used_ocr = False
         if ext == ".pdf":
             loader = PyPDFLoader(filepath)
+            documents = loader.load()
+            if self._looks_scanned(documents):
+                documents = self._ocr_pdf(filepath)
+                used_ocr = True
         elif ext == ".txt":
             loader = TextLoader(filepath, encoding="utf-8")
+            documents = loader.load()
         else:
             raise ValueError(f"Unsupported file type: {ext}")
 
-        documents = loader.load()
         chunks = self.splitter.split_documents(documents)
         if not chunks:
             raise ValueError("No text content could be extracted from the file.")
@@ -167,7 +178,30 @@ class RAGPipeline:
         self._save_state()
 
         questions = self._generate_questions(filename, chunks[:6])
-        return len(chunks), questions
+        return len(chunks), questions, used_ocr
+
+    def _looks_scanned(self, documents: list) -> bool:
+        """A PDF whose pages average under MIN_WORDS_PER_PAGE words is likely image-based/scanned."""
+        if not documents:
+            return True
+        total_words = sum(len(doc.page_content.split()) for doc in documents)
+        avg_words_per_page = total_words / len(documents)
+        return avg_words_per_page < MIN_WORDS_PER_PAGE
+
+    def _ocr_pdf(self, filepath: str) -> list:
+        """Re-process a scanned/image-based PDF page by page using Tesseract OCR."""
+        try:
+            images = convert_from_path(filepath)
+        except Exception as e:
+            raise ValueError(
+                f"OCR fallback failed to render PDF pages (is the Tesseract/poppler binary installed?): {e}"
+            )
+
+        documents = []
+        for page_num, image in enumerate(images):
+            text = pytesseract.image_to_string(image)
+            documents.append(Document(page_content=text, metadata={"source": filepath, "page": page_num}))
+        return documents
 
     def activate_from_history(self, filename: str):
         """Move a history doc back into the active session.
@@ -320,6 +354,14 @@ class RAGPipeline:
 
     # ── quiz ──────────────────────────────────────────────────────────────────
 
+    def _vectorstore_word_count(self, vs) -> int:
+        """Total word count across every chunk stored in a FAISS vectorstore."""
+        try:
+            docs = vs.docstore._dict.values()
+            return sum(len(d.page_content.split()) for d in docs)
+        except Exception:
+            return 0
+
     def generate_quiz(self, filenames: list[str], difficulty: str, question_types: list[str], num_questions: int) -> dict:
         if difficulty not in ("easy", "medium", "hard"):
             raise ValueError("difficulty must be 'easy', 'medium', or 'hard'.")
@@ -338,14 +380,26 @@ class RAGPipeline:
             num_questions = 5
         num_questions = max(1, min(num_questions, 20))
 
-        chunks_per_doc = max(3, (num_questions * 2) // max(len(filenames), 1))
-        context_parts = []
+        total_words = 0
         for filename in filenames:
             vs = self.vectorstores.get(filename)
             if not vs:
                 raise ValueError(
                     f"Document '{filename}' is not loaded. Activate it from History in Assist mode first."
                 )
+            total_words += self._vectorstore_word_count(vs)
+
+        min_words_needed = num_questions * 100
+        if total_words < min_words_needed:
+            raise ValueError(
+                f"This document may be too short for {num_questions} questions. "
+                "Try reducing the question count or selecting additional documents."
+            )
+
+        chunks_per_doc = max(3, (num_questions * 2) // max(len(filenames), 1))
+        context_parts = []
+        for filename in filenames:
+            vs = self.vectorstores[filename]
             docs = vs.similarity_search("key concepts main ideas important facts", k=chunks_per_doc)
             for doc in docs:
                 context_parts.append(f"[Source: {filename}]\n{doc.page_content}")

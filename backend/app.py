@@ -34,12 +34,13 @@ def upload():
     filepath = os.path.join(UPLOAD_FOLDER, file.filename)
     file.save(filepath)
     try:
-        chunk_count, questions = rag.ingest(filepath)
+        chunk_count, questions, used_ocr = rag.ingest(filepath)
         return jsonify({
             "message": f"Successfully ingested '{file.filename}'",
             "chunks": chunk_count,
             "filename": file.filename,
-            "suggested_questions": questions
+            "suggested_questions": questions,
+            "used_ocr": used_ocr
         })
     except Exception as e:
         return jsonify({"error": str(e)}), 500

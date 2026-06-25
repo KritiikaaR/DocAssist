@@ -1,4 +1,6 @@
 import { useState, useRef, useEffect } from "react";
+import katex from "katex";
+import { BlockMath, InlineMath } from "react-katex";
 import "./App.css";
 import Landing from "./Landing";
 import QuizMode from "./QuizMode";
@@ -9,6 +11,49 @@ const speechSupported = !!(window.SpeechRecognition || window.webkitSpeechRecogn
 
 function formatTime(date) {
   return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
+// Splits message text on LaTeX delimiters ($$...$$, \[...\], \(...\), $...$) and
+// renders math segments with KaTeX, falling back to raw text if a segment fails to parse.
+const MATH_REGEX = /\$\$([\s\S]+?)\$\$|\\\[([\s\S]+?)\\\]|\\\(([\s\S]+?)\\\)|\$([^$\n]+?)\$/g;
+
+function renderMessage(text) {
+  if (!text) return null;
+
+  const segments = [];
+  let lastIndex = 0;
+  let key = 0;
+  let match;
+
+  MATH_REGEX.lastIndex = 0;
+  while ((match = MATH_REGEX.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      segments.push(<span key={key++}>{text.slice(lastIndex, match.index)}</span>);
+    }
+
+    const [full, dollarBlock, bracketBlock, parenInline, dollarInline] = match;
+    const isBlock = dollarBlock !== undefined || bracketBlock !== undefined;
+    const expr = dollarBlock ?? bracketBlock ?? parenInline ?? dollarInline ?? "";
+
+    try {
+      // Validate parseability up front — react-katex would otherwise throw during
+      // React's render phase, which a try/catch around JSX creation can't catch.
+      katex.renderToString(expr, { throwOnError: true, displayMode: isBlock });
+      segments.push(
+        isBlock ? <BlockMath key={key++} math={expr} /> : <InlineMath key={key++} math={expr} />
+      );
+    } catch {
+      segments.push(<span key={key++}>{full}</span>);
+    }
+
+    lastIndex = match.index + full.length;
+  }
+
+  if (lastIndex < text.length) {
+    segments.push(<span key={key++}>{text.slice(lastIndex)}</span>);
+  }
+
+  return segments;
 }
 
 function IconSparkle(props) {
@@ -532,7 +577,7 @@ function App() {
             <div key={i} className={`msg ${m.role}`}>
               <div className="msg-col">
                 <div className={`bubble ${m.streaming ? "streaming" : ""}`}>
-                  <p>{m.text}{m.streaming && <span className="cursor">▌</span>}</p>
+                  <div className="bubble-text">{renderMessage(m.text)}{m.streaming && <span className="cursor">▌</span>}</div>
                   {!m.streaming && m.sources && m.sources.length > 0 && (
                     <div className="msg-sources">
                       <span className="sources-label">Sources</span>

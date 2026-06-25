@@ -39,6 +39,7 @@ export default function QuizMode({ onBack }) {
   const [error, setError] = useState("");
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
+  const [ocrFiles, setOcrFiles] = useState([]);
   const fileRef = useRef(null);
 
   // quiz-taking state
@@ -79,6 +80,9 @@ export default function QuizMode({ onBack }) {
       if (!res.ok) throw new Error(data.error || "Upload failed.");
       setSessionDocs((prev) => (prev.includes(data.filename) ? prev : [...prev, data.filename]));
       setSelectedDocs((prev) => (prev.includes(data.filename) ? prev : [...prev, data.filename]));
+      if (data.used_ocr) {
+        setOcrFiles((prev) => (prev.includes(data.filename) ? prev : [...prev, data.filename]));
+      }
     } catch (e) {
       setError(e.message || "Could not upload file.");
     } finally {
@@ -249,7 +253,11 @@ export default function QuizMode({ onBack }) {
           <p className="quiz-setup-subtitle">Pick documents, difficulty, and question types.</p>
         </div>
 
-        {error && <div className="quiz-error">{error}</div>}
+        {error && (
+          <div className={`quiz-error${error.toLowerCase().includes("too short") ? " quiz-warning" : ""}`}>
+            {error}
+          </div>
+        )}
 
         <div className="quiz-setup-columns">
           <div className="quiz-setup-col">
@@ -278,6 +286,9 @@ export default function QuizMode({ onBack }) {
                       <input type="checkbox" checked={selectedDocs.includes(d)} onChange={() => toggleDoc(d)} />
                       <span className="quiz-checkbox"><IconCheck /></span>
                       <span className="doc-name" title={d}>{d}</span>
+                      {ocrFiles.includes(d) && (
+                        <span className="ocr-badge" title="Processed with OCR (scanned PDF detected)">OCR</span>
+                      )}
                     </label>
                   ))}
                 </div>
