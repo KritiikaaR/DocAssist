@@ -1,97 +1,106 @@
-# HealthDoc RAG Assistant
+# DocAssist
 
-An AI-powered document Q&A tool built with LangChain, FAISS, GPT-4o, and React.  
-Upload health plan documents (PDF or TXT) and ask questions in natural language.
+A document question-answering assistant. Upload PDFs or text files and ask questions about them — answers are generated only from the retrieved passages, with citations back to the source file.
 
-## Tech Stack
+Built with Flask, LangChain, FAISS, and GPT-4o, with a React frontend.
+
+---
+
+## Features
+
+**Grounded answers with source attribution.** Every document gets its own FAISS index rather than being merged into one shared store. Retrieval runs per document, then scored chunks are pooled and ranked globally so answers pull the strongest passages across the whole corpus while still knowing which file each came from.
+
+**Scanned PDF recovery.** Standard PDF parsing returns nothing for image-based documents. DocAssist detects these by word density — under 50 words per page on average — and re-extracts the text through Tesseract OCR, preserving page and source metadata.
+
+**Multi-turn conversations.** Follow-up questions like "what about the second one?" are rewritten into standalone search queries using the last 8 turns of chat history, so retrieval doesn't lose context between messages.
+
+**Token streaming.** Responses stream token by token from Flask over server-sent events to the React frontend, so answers appear as they're generated rather than after a long wait.
+
+**Document management.** Uploaded documents and their vector indexes persist across restarts. Past documents can be reactivated in one click, and questions can be scoped to a chosen subset of files.
+
+**Quiz mode.** Generates multiple-choice and true/false questions at three difficulty levels from selected documents, validates the model's JSON output against the expected schema before use, and grades answers with explanations.
+
+---
+
+## Architecture
+
+```
+Upload  ->  Parse (PyPDF / OCR fallback)  ->  Chunk (800 chars, 100 overlap)
+        ->  Embed (OpenAI)  ->  FAISS index per document
+
+Question  ->  Condense with chat history  ->  Search each active index
+          ->  Pool and rank globally, take top 6  ->  GPT-4o  ->  Stream to client
+```
+
+**Why one index per document instead of one merged store:** a merged store returns the closest chunks but loses reliable per-file attribution. Keeping indexes separate preserves the source of every chunk, and ranking the pooled results afterward recovers the cross-document comparison a merged store would have given.
+
+---
+
+## Stack
 
 | Layer | Technology |
-|-------|-----------|
-| Frontend | React + Vite |
-| Backend | Flask + Python |
-| LLM | OpenAI GPT-4o |
-| Orchestration | LangChain |
-| Vector Store | FAISS |
-| Embeddings | OpenAI text-embedding-ada-002 |
+|---|---|
+| Backend | Flask, LangChain, FAISS, OpenAI GPT-4o |
+| OCR | Tesseract, Poppler |
+| Frontend | React, Vite |
+| Streaming | Server-sent events, Fetch Streams API |
+| Container | Docker |
 
-## Project Structure
+---
 
-```
-healthdoc-rag/
-├── backend/
-│   ├── app.py           # Flask API (upload, query, clear endpoints)
-│   ├── rag.py           # RAG pipeline (ingest, embed, retrieve, generate)
-│   ├── requirements.txt
-│   └── .env.example
-└── frontend/
-    ├── src/
-    │   ├── App.jsx      # Main chat UI component
-    │   └── App.css      # Styles
-    ├── package.json
-    └── vite.config.js
-```
+## Running it
 
-## Setup
-
-### 1. Backend
+### With Docker (recommended)
 
 ```bash
 cd backend
-
-# Create and activate virtual environment
-python -m venv venv
-source venv/bin/activate        # Mac/Linux
-# venv\Scripts\activate         # Windows
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Set your OpenAI API key
-cp .env.example .env
-# Edit .env and add your key: OPENAI_API_KEY=sk-...
-
-# Run the server
-python app.py
-# Backend runs at http://localhost:5000
+docker build -t docassist .
+docker run --rm -p 5000:5000 --env-file .env docassist
 ```
 
-### 2. Frontend
+Then, in a second terminal:
 
 ```bash
 cd frontend
-
 npm install
 npm run dev
-# Frontend runs at http://localhost:5173
 ```
 
-### 3. Usage
+The container image includes the system libraries the app depends on beyond pip packages: `tesseract-ocr` and `poppler-utils` for OCR, and `libgomp1` for FAISS.
 
-1. Open `http://localhost:5173` in your browser
-2. Upload a PDF or TXT health plan document using the sidebar
-3. Wait for ingestion confirmation
-4. Type your question in the chat box and press Enter
+### Without Docker
 
-## API Endpoints
+```bash
+cd backend
+python -m venv venv
+source venv/bin/activate          # Windows: venv\Scripts\activate
+pip install -r requirements.txt
+python app.py
+```
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/health` | Health check |
-| POST | `/upload` | Upload and ingest a document |
-| POST | `/query` | Ask a question |
-| GET | `/documents` | List ingested documents |
-| POST | `/clear` | Clear the vector store |
+Requires Tesseract and Poppler installed on the host.
 
-## How It Works
+### Environment
 
-1. **Ingestion**: Uploaded files are split into 800-token chunks with 100-token overlap using `RecursiveCharacterTextSplitter`
-2. **Embedding**: Each chunk is embedded using OpenAI's `text-embedding-ada-002` model
-3. **Storage**: Embeddings are stored in a FAISS index and persisted to disk
-4. **Retrieval**: On each query, the top-4 most similar chunks are retrieved via cosine similarity
-5. **Generation**: Retrieved chunks + the user question are sent to GPT-4o with a domain-specific prompt
-
-## Environment Variables
+Create `backend/.env`:
 
 ```
-OPENAI_API_KEY=your_openai_api_key_here
+OPENAI_API_KEY=your-key-here
 ```
+
+No spaces around `=` — Docker's `--env-file` parser rejects them.
+
+---
+
+## Notes
+
+Dependency versions are pinned. `faiss-cpu` is compiled against NumPy 1.x and fails to import under NumPy 2.x, and `langchain-openai` requires an `httpx` version that still accepts the `proxies` argument.
+
+---
+
+## Roadmap
+
+- Retrieval evaluation set with recall@k measurement
+- Unit tests for chunking, OCR detection, and quiz schema validation
+- Replace flat-file document tracking with SQLite
+- Deploy with rate limiting and a spend cap
