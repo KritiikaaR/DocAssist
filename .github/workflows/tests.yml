@@ -1,0 +1,43 @@
+# Runs the test suite automatically on every push and pull request.
+#
+# GitHub reads any .yml file under .github/workflows/ and runs it on their
+# machines. This one spins up a clean Ubuntu box, installs Python and the
+# project's dependencies, and runs pytest.
+
+name: Tests
+
+# When to run: pushes and pull requests targeting main.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    # The machine GitHub gives us. Note it's Linux, not Windows — so this also
+    # catches anything that only works because of something on your laptop.
+    runs-on: ubuntu-latest
+
+    steps:
+      # Copies your repository onto the runner. Without this the machine is empty.
+      - name: Check out the code
+        uses: actions/checkout@v4
+
+      # Matches the Python version used locally, so results are comparable.
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install dependencies
+        working-directory: backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest
+
+      # Runs from backend/ so conftest.py can import rag.py.
+      - name: Run tests
+        working-directory: backend
+        run: pytest -v
