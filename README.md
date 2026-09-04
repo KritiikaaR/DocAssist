@@ -1,3 +1,5 @@
+![Tests](https://github.com/KritiikaaR/DocAssist/actions/workflows/tests.yml/badge.svg)
+
 # DocAssist
 
 A document question-answering assistant. Upload PDFs or text files and ask questions about them — answers are generated only from the retrieved passages, with citations back to the source file.
