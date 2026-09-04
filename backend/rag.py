@@ -362,6 +362,27 @@ class RAGPipeline:
         except Exception:
             return 0
 
+
+    @staticmethod
+    def _parse_quiz_response(raw: str) -> dict:
+        """Strip markdown fences, parse JSON, and validate the quiz shape."""
+        cleaned = raw.strip()
+        if cleaned.startswith("```"):
+            cleaned = cleaned.strip("`")
+            if cleaned.lower().startswith("json"):
+                cleaned = cleaned[4:]
+            cleaned = cleaned.strip()
+
+        try:
+            quiz = json.loads(cleaned)
+        except json.JSONDecodeError as e:
+            raise ValueError(f"The AI returned malformed quiz data. Please try again. ({e})")
+
+        if not isinstance(quiz, dict) or not isinstance(quiz.get("questions"), list) or not quiz["questions"]:
+            raise ValueError("The AI returned an unexpected quiz format. Please try again.")
+
+        return quiz
+
     def generate_quiz(self, filenames: list[str], difficulty: str, question_types: list[str], num_questions: int) -> dict:
         if difficulty not in ("easy", "medium", "hard"):
             raise ValueError("difficulty must be 'easy', 'medium', or 'hard'.")
@@ -416,22 +437,8 @@ class RAGPipeline:
             "question_types": ", ".join(question_types),
         })
 
-        cleaned = raw.strip()
-        if cleaned.startswith("```"):
-            cleaned = cleaned.strip("`")
-            if cleaned.lower().startswith("json"):
-                cleaned = cleaned[4:]
-            cleaned = cleaned.strip()
-
-        try:
-            quiz = json.loads(cleaned)
-        except json.JSONDecodeError as e:
-            raise ValueError(f"The AI returned malformed quiz data. Please try again. ({e})")
-
-        if not isinstance(quiz, dict) or not isinstance(quiz.get("questions"), list) or not quiz["questions"]:
-            raise ValueError("The AI returned an unexpected quiz format. Please try again.")
-
-        return quiz
+    
+        return self._parse_quiz_response(raw)
 
     # ── clear ─────────────────────────────────────────────────────────────────
 
