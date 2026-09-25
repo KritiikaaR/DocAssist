@@ -44,6 +44,7 @@ Question  ->  Condense with chat history  ->  Search each active index
 | OCR | Tesseract, Poppler |
 | Frontend | React, Vite |
 | Streaming | Server-sent events, Fetch Streams API |
+| Tracing | OpenLLMetry (Traceloop SDK), Jaeger, SQLite |
 | Container | Docker |
 
 ---
@@ -92,15 +93,82 @@ No spaces around `=` — Docker's `--env-file` parser rejects them.
 
 ---
 
+## Observability
+
+Every chat and quiz request is traced with [OpenLLMetry](https://github.com/traceloop/openllmetry) (`traceloop-sdk`), rolled up into one SQLite row per request, and exposed at `/metrics/summary` and `/metrics/requests` for a `/metrics` dashboard. Spans optionally export to Jaeger for full-trace inspection.
+
+### Architecture
+
+```
+chat_query (workflow)                    quiz_generate (workflow)
+├── condense_question (task)*            ├── retrieve (task)
+├── retrieve (task)                      └── generate (task)
+├── generate (task)  — records TTFT
+└── evaluate (task)  — groundedness
+
+* only when the request has prior chat history
+
+Every span  ->  Jaeger (OTLP, optional)
+            ->  MetricsCollector  ->  SQLite (one row per request)
+                                   ->  GET /metrics/summary, GET /metrics/requests
+```
+
+`Instruments.LANGCHAIN` and `Instruments.OPENAI` auto-instrument LangChain's chain calls and the OpenAI client underneath, so model name and token counts show up for free. `chat_query`/`quiz_generate` and their steps are DocAssist's own spans layered on top of that, so a trace reads as a pipeline instead of a flat pile of framework spans.
+
+Chat answers stream over SSE, so `chat_query`'s spans are opened by hand (`observability/tracing.py`'s `traced_step`) rather than with the `@workflow`/`@task` decorators — those only wrap a function *call*, and applied to a generator function would just span the near-instant creation of the generator object, not the token-by-token loop that actually runs while Flask drains it. Quiz generation is a normal blocking call, so it uses the real decorators — the codebase ends up demonstrating both techniques.
+
+### Running Jaeger
+
+```bash
+docker-compose up
+```
+
+Starts Jaeger (UI at http://localhost:16686, OTLP receiver on port 4318) and the backend together. The backend also runs fine entirely on its own — tracing to Jaeger just won't happen (see below).
+
+### Env vars
+
+| Var | Default | What it does |
+|---|---|---|
+| `TRACING_ENABLED` | `1` | Export spans to Jaeger. `0` keeps the SQLite rollup (and `/metrics/*`) working without ever trying to reach Jaeger. |
+| `OTLP_ENDPOINT` | `http://localhost:4318` | Where Jaeger accepts OTLP over HTTP. |
+| `METRICS_DB_PATH` | `backend/metrics.db` | SQLite file the rollup is written to. |
+| `METRICS_ADMIN_TOKEN` | unset | Required (as an `X-Metrics-Token` header or `?token=` param) to reach `/metrics/*` from anywhere but localhost. **Unset in production means `/metrics/*` only answers loopback requests** — set this before exposing the backend publicly. |
+
+Tracing is designed to never take the app down: if Jaeger isn't running, or `Traceloop.init()` itself fails, `init_tracing()` logs a warning and the app runs exactly as if tracing were off. Render (no Jaeger there) relies on this.
+
+### Dashboard
+
+Set `VITE_METRICS_ENABLED=true` (frontend `.env`) to show the "Metrics" card on the landing page and enable the `/metrics` route. It shows p50/p95 latency, time-to-first-token, cost per request, average tokens, groundedness, error rate, a "where the time goes" step breakdown, a latency trend, and a table of recent requests linking out to their trace in Jaeger (needs `VITE_JAEGER_URL`, default `http://localhost:16686`).
+
+![Metrics dashboard](docs/metrics-dashboard.png)
+*(screenshot placeholder — run the app, ask a few questions, and drop a screenshot of `/metrics` here)*
+
+### Benchmark
+
+```bash
+cd backend
+python scripts/benchmark.py --doc sample.pdf --n 30 --reset
+```
+
+Uploads a document, fires 30 questions at it, and prints p50/p95 latency, TTFT, average tokens, cost per request, and groundedness — both the client's own stopwatch timing and the server's trace-derived numbers, as a cross-check on each other.
+
+### Groundedness
+
+The default check (`observability/eval.py`) is a cheap word-overlap score — no extra LLM call, no extra cost — kept behind a single function signature so it can be swapped for an LLM-as-judge later without touching call sites.
+
+---
+
 ## Notes
 
 Dependency versions are pinned. `faiss-cpu` is compiled against NumPy 1.x and fails to import under NumPy 2.x, and `langchain-openai` requires an `httpx` version that still accepts the `proxies` argument.
+
+**SQLite metrics are ephemeral on Render's free/starter tier.** Without a paid persistent Disk attached, `/metrics` history resets on every deploy or restart. Fine for a demo; don't rely on it as a long-term record.
 
 ---
 
 ## Roadmap
 
 - Retrieval evaluation set with recall@k measurement
-- Unit tests for chunking, OCR detection, and quiz schema validation
+- LLM-as-judge groundedness, compared against the word-overlap baseline
 - Replace flat-file document tracking with SQLite
 - Deploy with rate limiting and a spend cap

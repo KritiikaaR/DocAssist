@@ -1,0 +1,26 @@
+services:
+  # Jaeger receives traces over OTLP and gives you a UI to click through them.
+  # UI: http://localhost:16686
+  jaeger:
+    image: jaegertracing/jaeger:latest
+    ports:
+      - "16686:16686"   # web UI
+      - "4318:4318"     # OTLP over HTTP (where the backend sends spans)
+
+  backend:
+    build: ./backend
+    env_file:
+      - path: ./backend/.env
+        required: false
+    environment:
+      OTLP_ENDPOINT: http://jaeger:4318
+      METRICS_DB_PATH: /data/metrics.db
+    volumes:
+      - docassist-metrics:/data
+    ports:
+      - "5000:5000"
+    depends_on:
+      - jaeger
+
+volumes:
+  docassist-metrics:
