@@ -1,6 +1,7 @@
 import os
 import json
 import shutil
+import time
 from typing import List, Dict, Any, Generator
 
 from langchain_text_splitters import RecursiveCharacterTextSplitter
@@ -14,6 +15,10 @@ from langchain_core.documents import Document
 
 from pdf2image import convert_from_path
 import pytesseract
+from traceloop.sdk.decorators import task, workflow
+
+from observability.eval import groundedness
+from observability.tracing import traced_step
 
 MIN_WORDS_PER_PAGE = 50  # below this average, a PDF is treated as scanned/image-based
 
@@ -117,7 +122,15 @@ JSON:"""),
 class RAGPipeline:
     def __init__(self):
         self.embeddings = OpenAIEmbeddings(openai_api_key=os.getenv("OPENAI_API_KEY"))
-        self.llm = ChatOpenAI(model="gpt-4o", temperature=0.2, openai_api_key=os.getenv("OPENAI_API_KEY"))
+        # stream_usage=True is what makes token counts show up at all while
+        # streaming: without it, LangChain's .stream() never emits a final
+        # chunk carrying usage_metadata, so the OpenAI call underneath never
+        # gets `stream_options: {"include_usage": true}` set, and the OpenAI
+        # instrumentor has nothing to read input/output token counts off of.
+        self.llm = ChatOpenAI(
+            model="gpt-4o", temperature=0.2, openai_api_key=os.getenv("OPENAI_API_KEY"),
+            stream_usage=True,
+        )
         self.vectorstores: Dict[str, Any] = {}
         self.active_docs: List[str] = []
         self.session_docs: List[str] = []
@@ -311,31 +324,58 @@ class RAGPipeline:
     # ── query with memory (streaming) ─────────────────────────────────────────
 
     def query_stream(self, question: str) -> Generator:
-        if not self.vectorstores:
-            raise ValueError("No documents have been uploaded yet.")
-        if not self.active_docs:
-            raise ValueError("No documents are selected. Enable at least one document in the sidebar.")
+        """Traced as one `chat_query` workflow span, opened by hand rather than
+        with @workflow: this method is a *generator*, and the decorator would
+        only span the cheap creation of the generator object, not the
+        `for chunk in rag.query_stream(...)` loop that actually drives it from
+        app.py. Opening the span directly around this whole method body keeps
+        it "open" across every `yield`, the same way any `with` block does
+        inside a generator — it closes (recording status/exceptions normally)
+        whether the generator runs to completion, raises, or is abandoned
+        mid-stream by a disconnected client.
+        """
+        with traced_step("chat_query", kind="workflow") as root:
+            root.set_attribute("docassist.question", question[:500])
 
-        # Condense follow-ups into standalone queries so retrieval works correctly
-        search_query = self._condense_question(question)
-        context, sources = self._retrieve_with_sources(search_query)
+            if not self.vectorstores:
+                raise ValueError("No documents have been uploaded yet.")
+            if not self.active_docs:
+                raise ValueError("No documents are selected. Enable at least one document in the sidebar.")
 
-        if not context:
-            raise ValueError("Could not retrieve relevant content from the selected documents.")
+            # Condense follow-ups into standalone queries so retrieval works correctly
+            if self.chat_history:
+                with traced_step("condense_question"):
+                    search_query = self._condense_question(question)
+            else:
+                search_query = question
 
-        chain = MEMORY_PROMPT | self.llm | StrOutputParser()
+            with traced_step("retrieve"):
+                context, sources = self._retrieve_with_sources(search_query)
 
-        full_answer = ""
-        for chunk in chain.stream({
-            "context": context,
-            "question": question,       # use original question for the LLM answer
-            "history": self.chat_history[-8:],
-        }):
-            full_answer += chunk
-            yield chunk
+            if not context:
+                raise ValueError("Could not retrieve relevant content from the selected documents.")
 
-        self.chat_history.append(HumanMessage(content=question))
-        self.chat_history.append(AIMessage(content=full_answer))
+            chain = MEMORY_PROMPT | self.llm | StrOutputParser()
+
+            full_answer = ""
+            t0 = time.perf_counter()
+            with traced_step("generate") as gen_span:
+                for chunk in chain.stream({
+                    "context": context,
+                    "question": question,       # use original question for the LLM answer
+                    "history": self.chat_history[-8:],
+                }):
+                    if not full_answer:  # first chunk -> time to first token
+                        gen_span.set_attribute("docassist.ttft_ms", (time.perf_counter() - t0) * 1000)
+                    full_answer += chunk
+                    yield chunk
+
+            self.chat_history.append(HumanMessage(content=question))
+            self.chat_history.append(AIMessage(content=full_answer))
+
+            with traced_step("evaluate"):
+                score = groundedness(full_answer, context.split("\n\n---\n\n"))
+                root.set_attribute("docassist.groundedness", score)
 
         # Signal completion with source attribution
         yield {"sources": sources}
@@ -383,6 +423,27 @@ class RAGPipeline:
 
         return quiz
 
+    @task(name="retrieve")
+    def _quiz_context(self, filenames: list[str], chunks_per_doc: int) -> str:
+        context_parts = []
+        for filename in filenames:
+            vs = self.vectorstores[filename]
+            docs = vs.similarity_search("key concepts main ideas important facts", k=chunks_per_doc)
+            for doc in docs:
+                context_parts.append(f"[Source: {filename}]\n{doc.page_content}")
+        return "\n\n---\n\n".join(context_parts)
+
+    @task(name="generate")
+    def _quiz_raw_response(self, context: str, num_questions: int, difficulty: str, question_types: list[str]) -> str:
+        chain = QUIZ_PROMPT | self.llm | StrOutputParser()
+        return chain.invoke({
+            "context": context,
+            "num_questions": num_questions,
+            "difficulty": difficulty,
+            "question_types": ", ".join(question_types),
+        })
+
+    @workflow(name="quiz_generate")
     def generate_quiz(self, filenames: list[str], difficulty: str, question_types: list[str], num_questions: int) -> dict:
         if difficulty not in ("easy", "medium", "hard"):
             raise ValueError("difficulty must be 'easy', 'medium', or 'hard'.")
@@ -418,26 +479,11 @@ class RAGPipeline:
             )
 
         chunks_per_doc = max(3, (num_questions * 2) // max(len(filenames), 1))
-        context_parts = []
-        for filename in filenames:
-            vs = self.vectorstores[filename]
-            docs = vs.similarity_search("key concepts main ideas important facts", k=chunks_per_doc)
-            for doc in docs:
-                context_parts.append(f"[Source: {filename}]\n{doc.page_content}")
-
-        context = "\n\n---\n\n".join(context_parts)
+        context = self._quiz_context(filenames, chunks_per_doc)
         if not context:
             raise ValueError("Could not retrieve content from the selected documents.")
 
-        chain = QUIZ_PROMPT | self.llm | StrOutputParser()
-        raw = chain.invoke({
-            "context": context,
-            "num_questions": num_questions,
-            "difficulty": difficulty,
-            "question_types": ", ".join(question_types),
-        })
-
-    
+        raw = self._quiz_raw_response(context, num_questions, difficulty, question_types)
         return self._parse_quiz_response(raw)
 
     # ── clear ─────────────────────────────────────────────────────────────────
