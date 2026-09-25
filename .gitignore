@@ -1,10 +1,11 @@
 # Python
 backend/venv/
-backend/__pycache__/
+backend/**/__pycache__/
 backend/.env
 backend/uploads/
 backend/vectorstore/
 backend/ingested_docs.txt
+backend/metrics.db
 
 # Node
 frontend/node_modules/
