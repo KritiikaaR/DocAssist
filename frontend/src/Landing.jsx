@@ -24,7 +24,22 @@ function IconGradCap(props) {
   );
 }
 
-export default function Landing({ onSelectAssist, onSelectQuiz }) {
+function IconGauge(props) {
+  return (
+    <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="M12 4a9 9 0 1 0 9 9" />
+      <path d="M12 13 17 7" />
+      <path d="M12 13a1.4 1.4 0 1 0 0-2.8 1.4 1.4 0 0 0 0 2.8z" />
+    </svg>
+  );
+}
+
+// Off by default: a production build shouldn't advertise the dashboard unless
+// this deployment explicitly wants it (it exposes questions users asked, and
+// is gated server-side too — see the README's Observability section).
+const METRICS_ENABLED = import.meta.env.VITE_METRICS_ENABLED === "true";
+
+export default function Landing({ onSelectAssist, onSelectQuiz, onSelectMetrics }) {
   return (
     <div className="landing">
       <div className="landing-header">
@@ -45,6 +60,14 @@ export default function Landing({ onSelectAssist, onSelectQuiz }) {
           <h2>Quiz Me</h2>
           <p>Test your knowledge with questions generated from your documents.</p>
         </button>
+
+        {METRICS_ENABLED && (
+          <button className="mode-card" onClick={onSelectMetrics}>
+            <div className="mode-card-icon"><IconGauge /></div>
+            <h2>Metrics</h2>
+            <p>Latency, cost, and groundedness across recent requests.</p>
+          </button>
+        )}
       </div>
     </div>
   );

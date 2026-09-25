@@ -4,6 +4,7 @@ import { BlockMath, InlineMath } from "react-katex";
 import "./App.css";
 import Landing from "./Landing";
 import QuizMode from "./QuizMode";
+import Metrics from "./Metrics";
 
 const API = "http://localhost:5000";
 
@@ -173,10 +174,20 @@ function App() {
   const [suggestedQuestions, setSuggestedQuestions] = useState([]);
   const [listening, setListening] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [mode, setMode] = useState("landing");
+  // /metrics is a real, bookmarkable URL even without a router: read it once
+  // on load, and pushState when navigating there so the address bar stays in
+  // sync. vercel.json rewrites any path to index.html so a hard refresh on
+  // /metrics doesn't 404.
+  const [mode, setMode] = useState(() => (window.location.pathname === "/metrics" ? "metrics" : "landing"));
   const bottomRef = useRef(null);
   const fileRef = useRef(null);
   const recognitionRef = useRef(null);
+
+  function goToMode(next) {
+    const path = next === "metrics" ? "/metrics" : "/";
+    if (window.location.pathname !== path) window.history.pushState({}, "", path);
+    setMode(next);
+  }
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
   useEffect(() => { fetchDocs(); }, []);
@@ -451,7 +462,17 @@ function App() {
   }
 
   if (mode === "landing") {
-    return <Landing onSelectAssist={() => setMode("assist")} onSelectQuiz={() => setMode("quiz")} />;
+    return (
+      <Landing
+        onSelectAssist={() => setMode("assist")}
+        onSelectQuiz={() => setMode("quiz")}
+        onSelectMetrics={() => goToMode("metrics")}
+      />
+    );
+  }
+
+  if (mode === "metrics") {
+    return <Metrics onBack={() => goToMode("landing")} />;
   }
 
   if (mode === "quiz") {
