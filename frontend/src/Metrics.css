@@ -81,6 +81,49 @@
   font-family: var(--font);
 }
 
+.metrics-token-gate {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 360px;
+}
+.metrics-token-gate .metrics-error { margin: 0; }
+
+.metrics-token-form { display: flex; gap: 8px; }
+
+.metrics-token-form input {
+  flex: 1;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 9px 12px;
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.metrics-token-form input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(36,32,26,0.08);
+  background: var(--surface);
+}
+
+.metrics-token-form button {
+  background: var(--accent);
+  color: var(--text-on-accent);
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 9px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: var(--font);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.metrics-token-form button:hover:not(:disabled) { background: #3a342a; }
+.metrics-token-form button:disabled { opacity: 0.4; cursor: not-allowed; }
+
 .metrics-muted { color: var(--text-dim); font-size: 12px; }
 .metrics-small { font-size: 12px; margin-top: -4px; margin-bottom: 10px; }
 

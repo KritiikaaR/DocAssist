@@ -19,6 +19,15 @@ _LOOPBACK = {"127.0.0.1", "::1"}
 
 
 def require_metrics_access():
+    # The dashboard sends X-Metrics-Token as a real header (not just ?token=),
+    # which makes the browser precede the actual request with a CORS preflight
+    # OPTIONS. That preflight carries no token — it's the browser asking
+    # permission to send the real request, not the request itself — so it must
+    # be let through for Flask-CORS to answer it, or every token-authenticated
+    # fetch fails at the network level before Flask ever sees a real request.
+    if request.method == "OPTIONS":
+        return None
+
     # Read fresh per request (not a config-module snapshot) so a token can be
     # rotated without a process restart, and so tests can flip it with
     # monkeypatch.setenv without needing to reload any module.

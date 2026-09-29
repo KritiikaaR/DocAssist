@@ -97,6 +97,20 @@ def test_local_request_still_requires_token_once_one_is_set(tmp_path, monkeypatc
     assert resp.status_code == 401
 
 
+def test_options_preflight_is_never_blocked(tmp_path, monkeypatch):
+    """Sending X-Metrics-Token as a real header makes the browser precede the
+    request with a CORS preflight OPTIONS carrying no token. If auth blocked
+    that too, every token-authenticated fetch from the dashboard would fail at
+    the network level before Flask ever saw a real request — regardless of
+    whether a token is configured or the request is remote."""
+    client, _ = make_client(tmp_path, monkeypatch, token="secret")
+
+    resp = client.open(
+        "/metrics/summary", method="OPTIONS", environ_overrides={"REMOTE_ADDR": "203.0.113.5"}
+    )
+    assert resp.status_code not in (401, 403)
+
+
 # ---- endpoint behavior (all local requests, no token) ------------------------
 def test_requests_endpoint_returns_rows(tmp_path, monkeypatch):
     client, store = make_client(tmp_path, monkeypatch, token=None)

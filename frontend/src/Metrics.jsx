@@ -9,8 +9,14 @@ const REFRESH_MS = 5000;
 // Unset in production unless explicitly configured for a given deployment —
 // see the "Observability" section of the README for why /metrics is gated.
 const JAEGER_URL = import.meta.env.VITE_JAEGER_URL;
-const METRICS_TOKEN = import.meta.env.VITE_METRICS_ADMIN_TOKEN;
-const METRICS_HEADERS = METRICS_TOKEN ? { "X-Metrics-Token": METRICS_TOKEN } : {};
+
+// There is deliberately no VITE_METRICS_ADMIN_TOKEN build-time env var: Vite
+// inlines import.meta.env.* into the shipped JS bundle, so a build-time token
+// would be readable by anyone who opens devtools — the opposite of what it's
+// for. Instead, a 401 from the backend prompts for the token at runtime (see
+// TokenGate below), and it lives only in this component's React state — never
+// written to localStorage/sessionStorage/a cookie — so it's gone as soon as
+// the tab is closed or this page is navigated away from.
 
 function IconBack(props) {
   return (
@@ -35,6 +41,32 @@ function TraceLink({ traceId }) {
     <a className="metrics-trace-link" href={`${JAEGER_URL}/trace/${traceId}`} target="_blank" rel="noreferrer">
       trace ↗
     </a>
+  );
+}
+
+function TokenGate({ rejected, onSubmit }) {
+  const [draft, setDraft] = useState("");
+  return (
+    <div className="metrics-card metrics-token-gate">
+      <p className="metrics-error">
+        {rejected
+          ? "That token was rejected."
+          : "This backend requires an admin token to view metrics."}
+      </p>
+      <form
+        className="metrics-token-form"
+        onSubmit={(e) => { e.preventDefault(); onSubmit(draft.trim()); }}
+      >
+        <input
+          type="password"
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          placeholder="Admin token"
+          autoFocus
+        />
+        <button type="submit" disabled={!draft.trim()}>Unlock</button>
+      </form>
+    </div>
   );
 }
 
@@ -96,26 +128,49 @@ export default function Metrics({ onBack }) {
   const [summary, setSummary] = useState(null);
   const [rows, setRows] = useState([]);
   const [offline, setOffline] = useState(false);
+  // 403: no METRICS_ADMIN_TOKEN configured on the backend at all, and this
+  // request isn't from localhost — a token wouldn't help, only reconfiguring
+  // the backend would, so there's nothing to prompt for.
   const [forbidden, setForbidden] = useState(false);
+  // 401: the backend has a token configured and this request didn't present
+  // the right one — prompt for it. `token` lives only in memory (see the
+  // comment above) and is sent as a header on every subsequent request.
+  const [needsToken, setNeedsToken] = useState(false);
+  const [tokenRejected, setTokenRejected] = useState(false);
+  const [token, setToken] = useState("");
+
+  const authHeaders = useCallback(
+    () => (token ? { "X-Metrics-Token": token } : {}),
+    [token]
+  );
 
   const refresh = useCallback(async () => {
     try {
+      const headers = authHeaders();
       const [summaryRes, rowsRes] = await Promise.all([
-        fetch(`${API}/metrics/summary`, { headers: METRICS_HEADERS }),
-        fetch(`${API}/metrics/requests`, { headers: METRICS_HEADERS }),
+        fetch(`${API}/metrics/summary`, { headers }),
+        fetch(`${API}/metrics/requests`, { headers }),
       ]);
-      if (summaryRes.status === 401 || summaryRes.status === 403) {
+      if (summaryRes.status === 403) {
         setForbidden(true);
+        setNeedsToken(false);
+        return;
+      }
+      if (summaryRes.status === 401) {
+        setNeedsToken(true);
+        setTokenRejected(Boolean(token)); // had a token and it still failed
+        setForbidden(false);
         return;
       }
       setForbidden(false);
+      setNeedsToken(false);
       setSummary(await summaryRes.json());
       setRows(await rowsRes.json());
       setOffline(false);
     } catch {
       setOffline(true);
     }
-  }, []);
+  }, [authHeaders, token]);
 
   useEffect(() => {
     refresh();
@@ -124,9 +179,11 @@ export default function Metrics({ onBack }) {
   }, [refresh]);
 
   async function resetMetrics() {
-    await fetch(`${API}/metrics`, { method: "DELETE", headers: METRICS_HEADERS });
+    await fetch(`${API}/metrics`, { method: "DELETE", headers: authHeaders() });
     refresh();
   }
+
+  const blocked = forbidden || needsToken;
 
   return (
     <div className="metrics-page">
@@ -148,15 +205,18 @@ export default function Metrics({ onBack }) {
       <div className="metrics-body">
         {forbidden && (
           <p className="metrics-error">
-            Metrics are local-only in this environment. Set METRICS_ADMIN_TOKEN on the backend (and
-            VITE_METRICS_ADMIN_TOKEN on this build) to view them remotely.
+            Metrics are local-only in this environment. Set METRICS_ADMIN_TOKEN on the backend to
+            view them remotely.
           </p>
         )}
-        {offline && !forbidden && (
+        {needsToken && (
+          <TokenGate rejected={tokenRejected} onSubmit={setToken} />
+        )}
+        {offline && !blocked && (
           <p className="metrics-error">Can't reach the backend. Is it running on port 5000?</p>
         )}
 
-        {summary && !forbidden && (
+        {summary && !blocked && (
           <>
             <section className="metrics-stats">
               <StatTile label="Requests" value={summary.count} />
@@ -189,7 +249,7 @@ export default function Metrics({ onBack }) {
           </>
         )}
 
-        {!forbidden && (
+        {!blocked && (
           <section className="metrics-card">
             <h2>Recent requests</h2>
             <RequestsTable rows={rows} />
