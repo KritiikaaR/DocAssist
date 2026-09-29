@@ -83,7 +83,12 @@ def main():
     ap.add_argument("--n", type=int, default=30)
     ap.add_argument("--questions-file", help="one question per line; defaults to a generic built-in set")
     ap.add_argument("--reset", action="store_true", help="clear stored metrics before running")
-    ap.add_argument("--token", default=os.getenv("METRICS_ADMIN_TOKEN"), help="X-Metrics-Token, if the backend requires one")
+    ap.add_argument(
+        "--token", default=os.getenv("METRICS_ADMIN_TOKEN"),
+        help="X-Metrics-Token, if the backend requires one (e.g. the dev token "
+             "docker-compose.yml sets — export METRICS_ADMIN_TOKEN to match it "
+             "instead of passing this every time)",
+    )
     args = ap.parse_args()
 
     questions = load_questions(args.questions_file)

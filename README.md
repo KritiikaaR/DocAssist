@@ -125,6 +125,8 @@ docker-compose up
 
 Starts Jaeger (UI at http://localhost:16686, OTLP receiver on port 4318) and the backend together. The backend also runs fine entirely on its own — tracing to Jaeger just won't happen (see below).
 
+Requests from your host reach the backend container via the Docker network (e.g. `172.x`), not `127.0.0.1`, so the loopback-only access rule below would `403` you even on your own machine. `docker-compose.yml` sets a dev-only `METRICS_ADMIN_TOKEN` (`docassist-dev-token` by default — export `METRICS_ADMIN_TOKEN` on the host before `docker-compose up` to pick your own) to route around that.
+
 ### Env vars
 
 | Var | Default | What it does |
@@ -140,6 +142,8 @@ Tracing is designed to never take the app down: if Jaeger isn't running, or `Tra
 
 Set `VITE_METRICS_ENABLED=true` (frontend `.env`) to show the "Metrics" card on the landing page and enable the `/metrics` route. It shows p50/p95 latency, time-to-first-token, cost per request, average tokens, groundedness, error rate, a "where the time goes" step breakdown, a latency trend, and a table of recent requests linking out to their trace in Jaeger (needs `VITE_JAEGER_URL`, default `http://localhost:16686`).
 
+If `METRICS_ADMIN_TOKEN` is set on the backend, the dashboard prompts for it at runtime (a 401 triggers a small "enter admin token" form) rather than reading it from a build-time env var — Vite inlines `import.meta.env.*` into the shipped JS bundle, so a build-time token would just be sitting in plain text in devtools for anyone to read. The entered token lives only in React state for that page load; nothing is written to localStorage, sessionStorage, or a cookie.
+
 ![Metrics dashboard](docs/metrics-dashboard.png)
 *(screenshot placeholder — run the app, ask a few questions, and drop a screenshot of `/metrics` here)*
 
@@ -148,6 +152,9 @@ Set `VITE_METRICS_ENABLED=true` (frontend `.env`) to show the "Metrics" card on 
 ```bash
 cd backend
 python scripts/benchmark.py --doc sample.pdf --n 30 --reset
+
+# against the dockerized backend, pass the same token docker-compose set:
+METRICS_ADMIN_TOKEN=docassist-dev-token python scripts/benchmark.py --doc sample.pdf --n 30
 ```
 
 Uploads a document, fires 30 questions at it, and prints p50/p95 latency, TTFT, average tokens, cost per request, and groundedness — both the client's own stopwatch timing and the server's trace-derived numbers, as a cross-check on each other.

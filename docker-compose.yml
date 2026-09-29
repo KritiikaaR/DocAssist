@@ -15,6 +15,14 @@ services:
     environment:
       OTLP_ENDPOINT: http://jaeger:4318
       METRICS_DB_PATH: /data/metrics.db
+      # A request from the host reaches this container from the Docker
+      # network (e.g. 172.x), not 127.0.0.1, so the loopback-only fallback
+      # in observability/auth.py would 403 you even on your own machine.
+      # A token sidesteps that. Dev-only default — export METRICS_ADMIN_TOKEN
+      # on the host before `docker-compose up` to use your own value instead
+      # (scripts/benchmark.py and the dashboard's token prompt both just need
+      # to be given whatever value ends up here).
+      METRICS_ADMIN_TOKEN: ${METRICS_ADMIN_TOKEN:-docassist-dev-token}
     volumes:
       - docassist-metrics:/data
     ports:
