@@ -1,0 +1,45 @@
+Uploaded 'Introduction to Database.pdf' -> 11 chunks, used_ocr=False
+Uploaded 'CE305_SIgnaturePaper_19702_Kritika.pdf' -> 15 chunks, used_ocr=False
+Uploaded 'Midterm Exam.pdf' -> 33 chunks, used_ocr=False
+Active documents: ['Introduction to Database.pdf', 'CE305_SIgnaturePaper_19702_Kritika.pdf', 'Midterm Exam.pdf']
+[1/30] 4013ms (ttft 3493ms)  What specialized hardware features do AI microprocessors commonly include?
+[2/30] 4086ms (ttft 3440ms)  How does the dining-philosophers problem illustrate deadlock?
+[3/30] 3867ms (ttft 3458ms)  What does replication mean in a distributed database system?
+[4/30] 3479ms (ttft 3318ms)  Name two examples of AI microprocessors given in the document.
+[5/30] 4463ms (ttft 3608ms)  The database document discusses coordinating data across distributed nodes; the OS document discusses coordinating processes via context switching and locking. What similar coordination challenge do both documents describe?
+[6/30] 3810ms (ttft 3411ms)  What are the three main purposes of an operating system?
+[7/30] 3701ms (ttft 3642ms)  What is busy waiting?
+[8/30] 3337ms (ttft 3063ms)  What are the three main purposes of an operating system?
+[9/30] 4421ms (ttft 3689ms)  Explain how AI and general microprocessors work together in edge computing scenarios.
+[10/30] 4558ms (ttft 3565ms)  Describe a hybrid computing architecture as explained in the document, and why it combines both processor types.
+[11/30] 4445ms (ttft 4323ms)  What architecture do general microprocessors use?
+[12/30] 4754ms (ttft 3277ms)  Both the database document and the OS document describe ways of scaling computation -- NoSQL's horizontal scaling across servers and Amdahl's Law's speedup across processing cores. How does each document frame the benefit of adding more compute units?
+[13/30] 3623ms (ttft 3318ms)  What does replication mean in a distributed database system?
+[14/30] 3960ms (ttft 3283ms)  The database document discusses coordinating data across distributed nodes; the OS document discusses coordinating processes via context switching and locking. What similar coordination challenge do both documents describe?
+[15/30] 3673ms (ttft 3328ms)  What specialized hardware features do AI microprocessors commonly include?
+[16/30] 4830ms (ttft 4586ms)  What technologies does the document recommend for processing big data?
+[17/30] 3590ms (ttft 3549ms)  What does ETL stand for?
+[18/30] 3976ms (ttft 3384ms)  Which scheduling algorithm can cause starvation, and why does that happen?
+[19/30] 4206ms (ttft 3791ms)  What is the Apple M1, and what makes it notable?
+[20/30] 3704ms (ttft 3517ms)  Name two examples of AI microprocessors given in the document.
+[21/30] 4706ms (ttft 3301ms)  The AI microprocessor document and the OS document both discuss matching specialized hardware or mechanisms to a workload (AI accelerators vs. spinlocks/mutexes for short vs. long critical sections). What's the common theme in how each document says the right tool should be chosen?
+[22/30] 4005ms (ttft 3642ms)  What are the three characteristics of big data described in the document?
+[23/30] 5015ms (ttft 4072ms)  What is task offloading, and how does it apply differently to AI vs. general microprocessors in a mobile device?
+[24/30] 4743ms (ttft 3479ms)  The AI microprocessor document and the OS document both discuss matching specialized hardware or mechanisms to a workload (AI accelerators vs. spinlocks/mutexes for short vs. long critical sections). What's the common theme in how each document says the right tool should be chosen?
+[25/30] 4297ms (ttft 3985ms)  What is the Apple M1, and what makes it notable?
+[26/30] 4842ms (ttft 3691ms)  Describe a hybrid computing architecture as explained in the document, and why it combines both processor types.
+[27/30] 4328ms (ttft 3598ms)  Compare how SQL and NoSQL databases scale, and explain why that matters for a high-traffic social media platform.
+[28/30] 4777ms (ttft 3933ms)  The database document discusses coordinating data across distributed nodes; the OS document discusses coordinating processes via context switching and locking. What similar coordination challenge do both documents describe?
+[29/30] 3492ms (ttft 3381ms)  What does ETL stand for?
+[30/30] 3941ms (ttft 3498ms)  Which scheduling algorithm can cause starvation, and why does that happen?
+
+--- results ---
+client-side median total:  4049 ms, failures: 0
+client-side median TTFT:   3508 ms
+server p50 / p95 total:     1950 / 2755 ms
+server p50 / p95 TTFT:      623 / 928 ms
+avg tokens:                 1150
+avg cost/request:           $0.003275
+groundedness:                0.815
+error rate:                  0%
+time share by step: {'evaluate': '0%', 'generate': '59%', 'retrieve': '41%'}

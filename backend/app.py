@@ -5,6 +5,10 @@ import json
 from dotenv import load_dotenv
 from rag import RAGPipeline
 
+from observability import config as obs_config
+from observability.store import RequestStore
+from observability.tracing import init_tracing, metrics_blueprint
+
 load_dotenv()
 
 app = Flask(__name__)
@@ -14,6 +18,13 @@ UPLOAD_FOLDER = "uploads"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 rag = RAGPipeline()
+
+# init_tracing() never raises — a Jaeger that isn't running, or TRACING_ENABLED=0,
+# just means spans aren't exported, not that the app fails to start. The SQLite
+# rollup (and /metrics/*) keeps working either way.
+metrics_store = RequestStore(obs_config.METRICS_DB_PATH)
+init_tracing(metrics_store, obs_config.OTLP_ENDPOINT, obs_config.TRACING_ENABLED)
+app.register_blueprint(metrics_blueprint(metrics_store))
 
 
 @app.route("/health", methods=["GET"])

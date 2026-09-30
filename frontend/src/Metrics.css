@@ -1,0 +1,271 @@
+/* Metrics dashboard.
+ *
+ * Chrome (surfaces, borders, ink, radius, shadow, fonts) reuses App.css's
+ * existing --bg/--surface/--text/... tokens, so this page sits inside
+ * DocAssist's own pastel palette rather than importing ragscope's styling.
+ *
+ * The four step colors below are the exception: they're a *categorical*
+ * palette (identity, not mood), so they're picked from the dataviz skill's
+ * validated default set (skill: dataviz, references/palette.md) and checked
+ * with its validator script against this app's cream surface (#F5F1E8)
+ * rather than hand-picked to match the earthy theme, which would risk
+ * failing the colorblind-safety / contrast checks. Order is fixed to the
+ * pipeline's own order (condense -> retrieve -> generate -> evaluate) so a
+ * given step is always the same color everywhere it appears.
+ */
+.metrics-page {
+  --series-1: #2a78d6; /* condense_question */
+  --series-2: #eb6834; /* retrieve */
+  --series-3: #1baf7a; /* generate */
+  --series-4: #eda100; /* evaluate */
+  --series-other: var(--text-dim);
+  /* The categorical set above is < 3:1 against the cream surface for some
+     slots (by design — see the skill's contrast WARN) — the "relief rule"
+     applies: every place a series color appears, a visible text label sits
+     next to it (legend, tooltip, table cell), so color is never the only
+     signal. */
+
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--chat-bg);
+}
+
+.metrics-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 28px 14px;
+  border-bottom: 1px solid var(--border);
+  background: var(--sidebar-bg);
+}
+
+.metrics-header-left { display: flex; align-items: center; gap: 14px; }
+.metrics-header h1 { font-family: var(--font-serif); font-size: 22px; font-weight: 600; color: var(--text); }
+.metrics-header p { font-size: 11px; color: var(--text-muted); margin-top: 4px; font-family: var(--mono); letter-spacing: 0.03em; }
+
+.metrics-reset-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  border-radius: var(--radius-sm);
+  padding: 9px 16px;
+  font-size: 12px;
+  font-family: var(--font);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.metrics-reset-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+
+.metrics-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px 28px 60px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.metrics-error {
+  background: #f7e9e7;
+  border: 1px solid #e0b3ad;
+  color: #8a2f24;
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  font-size: 13px;
+  font-family: var(--font);
+}
+
+.metrics-token-gate {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 360px;
+}
+.metrics-token-gate .metrics-error { margin: 0; }
+
+.metrics-token-form { display: flex; gap: 8px; }
+
+.metrics-token-form input {
+  flex: 1;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 9px 12px;
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.metrics-token-form input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(36,32,26,0.08);
+  background: var(--surface);
+}
+
+.metrics-token-form button {
+  background: var(--accent);
+  color: var(--text-on-accent);
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 9px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: var(--font);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.metrics-token-form button:hover:not(:disabled) { background: #3a342a; }
+.metrics-token-form button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.metrics-muted { color: var(--text-dim); font-size: 12px; }
+.metrics-small { font-size: 12px; margin-top: -4px; margin-bottom: 10px; }
+
+/* ── Stat tiles ── */
+.metrics-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+}
+
+.metrics-stat {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  box-shadow: var(--shadow);
+}
+
+.metrics-stat-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-dim);
+  font-family: var(--mono);
+}
+
+.metrics-stat-value { font-family: var(--font-serif); font-size: 22px; font-weight: 600; color: var(--text); }
+.metrics-stat-value.danger { color: #b3261e; }
+.metrics-stat-hint { font-size: 11px; color: var(--text-muted); }
+
+/* ── Cards / layout ── */
+.metrics-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 900px) { .metrics-grid-2 { grid-template-columns: 1fr; } }
+
+.metrics-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px 22px;
+  box-shadow: var(--shadow);
+}
+
+.metrics-card h2 { font-family: var(--font-serif); font-size: 16px; font-weight: 600; color: var(--text); }
+
+/* ── Step breakdown ── */
+.metrics-breakdown { display: flex; flex-direction: column; gap: 14px; }
+
+.metrics-stack {
+  display: flex;
+  height: 14px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--surface2);
+}
+
+.metrics-stack-seg { position: relative; min-width: 2px; }
+.metrics-stack-seg + .metrics-stack-seg { border-left: 2px solid var(--surface); }
+
+.metrics-legend { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+.metrics-legend li { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+.metrics-swatch { width: 9px; height: 9px; border-radius: 3px; flex-shrink: 0; }
+.metrics-legend-name { color: var(--text); flex: 1; }
+.metrics-legend-val { color: var(--text); font-weight: 600; font-family: var(--mono); }
+
+/* ── Tooltips ── */
+.metrics-tooltip {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--accent);
+  color: var(--text-on-accent);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  font-size: 11px;
+  white-space: nowrap;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  box-shadow: var(--shadow-md);
+  z-index: 5;
+  pointer-events: none;
+}
+.metrics-tooltip-floating { position: absolute; transform: translate(-50%, -100%); }
+.metrics-tooltip-q { max-width: 220px; white-space: normal; color: var(--text-dim); }
+
+/* ── Latency chart ── */
+.metrics-chart-wrap { position: relative; }
+.metrics-empty-chart { display: flex; align-items: center; justify-content: center; height: 160px; }
+.metrics-grid { stroke: var(--border); stroke-width: 1; }
+.metrics-axis { fill: var(--text-dim); font-size: 9px; font-family: var(--mono); }
+.metrics-ref-line { stroke: var(--text-dim); stroke-width: 1; stroke-dasharray: 3 3; }
+.metrics-ref-label { fill: var(--text-muted); }
+.metrics-line { fill: none; stroke: var(--series-1); stroke-width: 2; }
+.metrics-err-dot { fill: #b3261e; stroke: var(--surface); stroke-width: 2; }
+.metrics-crosshair { stroke: var(--border-strong); stroke-width: 1; }
+.metrics-hover-dot { fill: var(--accent); stroke: var(--surface); stroke-width: 2; }
+
+/* ── Recent requests table ── */
+.metrics-table-wrap { overflow-x: auto; }
+.metrics-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.metrics-table th {
+  text-align: left;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-dim);
+  font-family: var(--mono);
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+.metrics-table th.num, .metrics-table td.num { text-align: right; }
+.metrics-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+  vertical-align: middle;
+  white-space: nowrap;
+}
+.metrics-q { max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap !important; }
+
+.metrics-kind-badge {
+  font-size: 10px;
+  font-family: var(--mono);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 2px 6px;
+}
+
+.metrics-mini-stack { display: flex; width: 70px; height: 8px; border-radius: 4px; overflow: hidden; background: var(--surface2); }
+
+.metrics-badge { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px; }
+.metrics-badge.ok { color: #2e7d4f; background: #e4f3ea; }
+.metrics-badge.error { color: #b3261e; background: #f7e9e7; }
+
+.metrics-trace-link { color: var(--accent); font-family: var(--mono); font-size: 11px; text-decoration: none; }
+.metrics-trace-link:hover { text-decoration: underline; }

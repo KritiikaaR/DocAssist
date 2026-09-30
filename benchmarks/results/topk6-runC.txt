@@ -1,0 +1,45 @@
+Uploaded 'Introduction to Database.pdf' -> 11 chunks, used_ocr=False
+Uploaded 'CE305_SIgnaturePaper_19702_Kritika.pdf' -> 15 chunks, used_ocr=False
+Uploaded 'Midterm Exam.pdf' -> 33 chunks, used_ocr=False
+Active documents: ['Introduction to Database.pdf', 'CE305_SIgnaturePaper_19702_Kritika.pdf', 'Midterm Exam.pdf']
+[1/30] 3720ms (ttft 3690ms)  What does ETL stand for?
+[2/30] 7752ms (ttft 6475ms)  The AI microprocessor document and the OS document both discuss matching specialized hardware or mechanisms to a workload (AI accelerators vs. spinlocks/mutexes for short vs. long critical sections). What's the common theme in how each document says the right tool should be chosen?
+[3/30] 3936ms (ttft 3388ms)  What specialized hardware features do AI microprocessors commonly include?
+[4/30] 4456ms (ttft 4112ms)  What is the Apple M1, and what makes it notable?
+[5/30] 6290ms (ttft 3682ms)  Explain the difference between a spinlock and a mutex lock, and describe when each is the better choice.
+[6/30] 5899ms (ttft 4300ms)  Both the database document and the OS document describe ways of scaling computation -- NoSQL's horizontal scaling across servers and Amdahl's Law's speedup across processing cores. How does each document frame the benefit of adding more compute units?
+[7/30] 5832ms (ttft 5144ms)  Explain how AI and general microprocessors work together in edge computing scenarios.
+[8/30] 4680ms (ttft 3707ms)  Describe a hybrid computing architecture as explained in the document, and why it combines both processor types.
+[9/30] 4972ms (ttft 3779ms)  List the steps a kernel takes to context-switch between processes.
+[10/30] 4876ms (ttft 3777ms)  Explain the difference between a spinlock and a mutex lock, and describe when each is the better choice.
+[11/30] 4132ms (ttft 3564ms)  List the four steps of the data mining process, in order, with what each involves.
+[12/30] 4050ms (ttft 3634ms)  What is a distributed database?
+[13/30] 3938ms (ttft 3450ms)  What does replication mean in a distributed database system?
+[14/30] 4043ms (ttft 3605ms)  What are the three main purposes of an operating system?
+[15/30] 4255ms (ttft 3895ms)  What are the three main purposes of an operating system?
+[16/30] 4027ms (ttft 3682ms)  What is a distributed database?
+[17/30] 4090ms (ttft 3604ms)  What technologies does the document recommend for processing big data?
+[18/30] 4053ms (ttft 3458ms)  What is busy waiting?
+[19/30] 4567ms (ttft 3419ms)  Describe a hybrid computing architecture as explained in the document, and why it combines both processor types.
+[20/30] 6042ms (ttft 5283ms)  What is the purpose of a system call?
+[21/30] 3575ms (ttft 3453ms)  Using Amdahl's Law, what is the speedup gain for 90 percent parallel code with 8 processing cores, and how is it calculated?
+[22/30] 4866ms (ttft 4301ms)  Which scheduling algorithm can cause starvation, and why does that happen?
+[23/30] 3918ms (ttft 3367ms)  What are the three characteristics of big data described in the document?
+[24/30] 3943ms (ttft 3832ms)  What architecture do general microprocessors use?
+[25/30] 4006ms (ttft 3547ms)  Why would a banking application be better suited to SQL than NoSQL, according to the document?
+[26/30] 4694ms (ttft 3568ms)  What is task offloading, and how does it apply differently to AI vs. general microprocessors in a mobile device?
+[27/30] 4628ms (ttft 3381ms)  List the steps a kernel takes to context-switch between processes.
+[28/30] 3779ms (ttft 3374ms)  What is the purpose of a system call?
+[29/30] 3571ms (ttft 3397ms)  What is the Apple M1, and what makes it notable?
+[30/30] 5818ms (ttft 3536ms)  Explain the difference between a spinlock and a mutex lock, and describe when each is the better choice.
+
+--- results ---
+client-side median total:  4193 ms, failures: 0
+client-side median TTFT:   3619 ms
+server p50 / p95 total:     2056 / 3991 ms
+server p50 / p95 TTFT:      629 / 1049 ms
+avg tokens:                 1168.4
+avg cost/request:           $0.003487
+groundedness:                0.81
+error rate:                  0%
+time share by step: {'evaluate': '0%', 'generate': '58%', 'retrieve': '42%'}

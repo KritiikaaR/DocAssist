@@ -38,6 +38,13 @@ jobs:
           pip install pytest
 
       # Runs from backend/ so conftest.py can import rag.py.
+      # TRACING_ENABLED=0 and TRACELOOP_TELEMETRY=false keep the tracing
+      # tests from trying to reach a Jaeger instance or Traceloop's telemetry
+      # endpoint — neither exists on the runner, and neither should be needed
+      # for tests to pass.
       - name: Run tests
         working-directory: backend
+        env:
+          TRACING_ENABLED: "0"
+          TRACELOOP_TELEMETRY: "false"
         run: pytest -v

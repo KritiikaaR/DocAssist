@@ -1,0 +1,45 @@
+Uploaded 'Introduction to Database.pdf' -> 11 chunks, used_ocr=False
+Uploaded 'CE305_SIgnaturePaper_19702_Kritika.pdf' -> 15 chunks, used_ocr=False
+Uploaded 'Midterm Exam.pdf' -> 33 chunks, used_ocr=False
+Active documents: ['Introduction to Database.pdf', 'CE305_SIgnaturePaper_19702_Kritika.pdf', 'Midterm Exam.pdf']
+[1/30] 5465ms (ttft 3823ms)  Both the database document and the OS document describe ways of scaling computation -- NoSQL's horizontal scaling across servers and Amdahl's Law's speedup across processing cores. How does each document frame the benefit of adding more compute units?
+[2/30] 3802ms (ttft 3776ms)  What architecture do general microprocessors use?
+[3/30] 4091ms (ttft 3668ms)  What is the Apple M1, and what makes it notable?
+[4/30] 3734ms (ttft 3316ms)  What technologies does the document recommend for processing big data?
+[5/30] 3813ms (ttft 3286ms)  What specialized hardware features do AI microprocessors commonly include?
+[6/30] 4401ms (ttft 3618ms)  Why would a banking application be better suited to SQL than NoSQL, according to the document?
+[7/30] 4705ms (ttft 3911ms)  Compare how SQL and NoSQL databases scale, and explain why that matters for a high-traffic social media platform.
+[8/30] 3914ms (ttft 3275ms)  Which scheduling algorithm can cause starvation, and why does that happen?
+[9/30] 4567ms (ttft 3935ms)  What is a distributed database?
+[10/30] 4978ms (ttft 4469ms)  What are the three main purposes of an operating system?
+[11/30] 3575ms (ttft 3400ms)  What architecture do general microprocessors use?
+[12/30] 4613ms (ttft 3257ms)  The database document discusses coordinating data across distributed nodes; the OS document discusses coordinating processes via context switching and locking. What similar coordination challenge do both documents describe?
+[13/30] 3999ms (ttft 3366ms)  What specialized hardware features do AI microprocessors commonly include?
+[14/30] 3882ms (ttft 3400ms)  What is a distributed database?
+[15/30] 4308ms (ttft 3365ms)  The database document discusses coordinating data across distributed nodes; the OS document discusses coordinating processes via context switching and locking. What similar coordination challenge do both documents describe?
+[16/30] 5883ms (ttft 3691ms)  Explain the difference between a spinlock and a mutex lock, and describe when each is the better choice.
+[17/30] 3536ms (ttft 3448ms)  Which state -- stack, heap, or shared memory segments -- is shared between a parent and child process after fork()?
+[18/30] 6135ms (ttft 3381ms)  Explain the difference between a spinlock and a mutex lock, and describe when each is the better choice.
+[19/30] 3453ms (ttft 3405ms)  The AI microprocessor document and the OS document both discuss matching specialized hardware or mechanisms to a workload (AI accelerators vs. spinlocks/mutexes for short vs. long critical sections). What's the common theme in how each document says the right tool should be chosen?
+[20/30] 3980ms (ttft 3384ms)  Compare how SQL and NoSQL databases scale, and explain why that matters for a high-traffic social media platform.
+[21/30] 3991ms (ttft 3438ms)  What specialized hardware features do AI microprocessors commonly include?
+[22/30] 4811ms (ttft 3758ms)  List the steps a kernel takes to context-switch between processes.
+[23/30] 4468ms (ttft 3567ms)  Describe a hybrid computing architecture as explained in the document, and why it combines both processor types.
+[24/30] 3905ms (ttft 3425ms)  What specialized hardware features do AI microprocessors commonly include?
+[25/30] 3788ms (ttft 3571ms)  What is busy waiting?
+[26/30] 5203ms (ttft 3637ms)  Compare the computer architecture of general microprocessors and AI microprocessors, including what each is optimized for.
+[27/30] 4488ms (ttft 3435ms)  Explain the relationship between replication and data consistency challenges in distributed databases.
+[28/30] 4288ms (ttft 3624ms)  Explain how AI and general microprocessors work together in edge computing scenarios.
+[29/30] 4112ms (ttft 3562ms)  Which scheduling algorithm can cause starvation, and why does that happen?
+[30/30] 3863ms (ttft 3544ms)  What technologies does the document recommend for processing big data?
+
+--- results ---
+client-side median total:  4101 ms, failures: 0
+client-side median TTFT:   3496 ms
+server p50 / p95 total:     2010 / 3400 ms
+server p50 / p95 TTFT:      609 / 923 ms
+avg tokens:                 685.5
+avg cost/request:           $0.002187
+groundedness:                0.768
+error rate:                  0%
+time share by step: {'evaluate': '0%', 'generate': '62%', 'retrieve': '38%'}
