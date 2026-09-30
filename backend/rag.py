@@ -22,6 +22,10 @@ from observability.tracing import traced_step
 
 MIN_WORDS_PER_PAGE = 50  # below this average, a PDF is treated as scanned/image-based
 
+# How many pooled, globally-ranked chunks feed the answer prompt (see
+# _retrieve_with_sources). Separate from the per-document search width below.
+RETRIEVAL_TOP_K = int(os.getenv("RETRIEVAL_TOP_K", "6"))
+
 VECTORSTORE_DIR = "vectorstore"
 UPLOAD_DIR = "uploads"
 DOCS_FILE = "ingested_docs.txt"
@@ -303,9 +307,9 @@ class RAGPipeline:
         if not all_results:
             return "", []
 
-        # Sort ascending by L2 distance and take the top 6 chunks overall
+        # Sort ascending by L2 distance and take the top RETRIEVAL_TOP_K chunks overall
         all_results.sort(key=lambda x: x[1])
-        top = all_results[:6]
+        top = all_results[:RETRIEVAL_TOP_K]
 
         context_parts = []
         source_chunks: List[dict] = []

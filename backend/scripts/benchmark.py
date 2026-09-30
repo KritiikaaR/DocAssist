@@ -8,6 +8,7 @@ those are cross-checks against the server-side numbers /metrics/summary reports
 Usage:
     python scripts/benchmark.py --doc sample_docs/rag_basics.md      # 30 requests
     python scripts/benchmark.py --doc mydoc.pdf --n 100 --reset
+    python scripts/benchmark.py --doc a.pdf --doc b.pdf --doc c.pdf --n 30   # multiple docs active at once
 
 Run it once, change ONE thing (chunk size, model, prompt), run it again, and
 compare p95 + cost per request. That before/after is your resume bullet.
@@ -53,8 +54,29 @@ def upload_doc(client: httpx.Client, doc_path: str) -> str:
     return filename
 
 
+def activate_docs(client: httpx.Client, filenames: list[str]) -> None:
+    """Explicitly set the active-document set rather than relying on upload's
+    implicit auto-activate — makes it obvious which documents every question
+    in the run is retrieving against, regardless of upload order."""
+    resp = client.post("/documents/active", json={"docs": filenames})
+    resp.raise_for_status()
+    active = resp.json().get("active", [])
+    print(f"Active documents: {active}")
+    missing = set(filenames) - set(active)
+    if missing:
+        raise RuntimeError(f"Failed to activate: {missing}")
+
+
 def ask_and_time(client: httpx.Client, question: str) -> dict:
-    """Streams /query and returns client-side timing + whether it succeeded."""
+    """Clears server-side chat history first so every question is an
+    independent request — otherwise RAGPipeline.chat_history accumulates
+    across the whole run (it's never reset between unrelated questions),
+    which would add an extra condense_question LLM call on every question
+    after the first and make cost/token numbers incomparable across runs.
+    Then streams /query and returns client-side timing + whether it succeeded.
+    """
+    client.post("/history/clear").raise_for_status()
+
     t0 = time.perf_counter()
     ttft = None
     failed = False
@@ -79,7 +101,11 @@ def ask_and_time(client: httpx.Client, question: str) -> dict:
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--url", default="http://localhost:5000")
-    ap.add_argument("--doc", required=True, help="path to a PDF or TXT file to index before asking questions")
+    ap.add_argument(
+        "--doc", required=True, action="append",
+        help="path to a PDF or TXT file to index before asking questions; "
+             "repeat to activate multiple documents at once",
+    )
     ap.add_argument("--n", type=int, default=30)
     ap.add_argument("--questions-file", help="one question per line; defaults to a generic built-in set")
     ap.add_argument("--reset", action="store_true", help="clear stored metrics before running")
@@ -95,7 +121,8 @@ def main():
     headers = {"X-Metrics-Token": args.token} if args.token else {}
 
     with httpx.Client(base_url=args.url, timeout=60, headers=headers) as client:
-        upload_doc(client, args.doc)
+        filenames = [upload_doc(client, doc) for doc in args.doc]
+        activate_docs(client, filenames)
 
         if args.reset:
             client.delete("/metrics").raise_for_status()

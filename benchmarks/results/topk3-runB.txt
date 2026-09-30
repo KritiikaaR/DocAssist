@@ -1,0 +1,45 @@
+Uploaded 'Introduction to Database.pdf' -> 11 chunks, used_ocr=False
+Uploaded 'CE305_SIgnaturePaper_19702_Kritika.pdf' -> 15 chunks, used_ocr=False
+Uploaded 'Midterm Exam.pdf' -> 33 chunks, used_ocr=False
+Active documents: ['Introduction to Database.pdf', 'CE305_SIgnaturePaper_19702_Kritika.pdf', 'Midterm Exam.pdf']
+[1/30] 4323ms (ttft 3768ms)  Explain how AI and general microprocessors work together in edge computing scenarios.
+[2/30] 4004ms (ttft 3978ms)  The AI microprocessor document and the OS document both discuss matching specialized hardware or mechanisms to a workload (AI accelerators vs. spinlocks/mutexes for short vs. long critical sections). What's the common theme in how each document says the right tool should be chosen?
+[3/30] 5611ms (ttft 3267ms)  Explain the difference between a spinlock and a mutex lock, and describe when each is the better choice.
+[4/30] 4405ms (ttft 3778ms)  Compare how SQL and NoSQL databases scale, and explain why that matters for a high-traffic social media platform.
+[5/30] 4704ms (ttft 3476ms)  List the steps a kernel takes to context-switch between processes.
+[6/30] 3477ms (ttft 3363ms)  What architecture do general microprocessors use?
+[7/30] 3554ms (ttft 3143ms)  What is the purpose of a system call?
+[8/30] 3455ms (ttft 3295ms)  What are the three characteristics of big data described in the document?
+[9/30] 4947ms (ttft 3264ms)  Explain the difference between a spinlock and a mutex lock, and describe when each is the better choice.
+[10/30] 4304ms (ttft 4161ms)  What does ETL stand for?
+[11/30] 4834ms (ttft 3692ms)  The database document discusses coordinating data across distributed nodes; the OS document discusses coordinating processes via context switching and locking. What similar coordination challenge do both documents describe?
+[12/30] 3823ms (ttft 3797ms)  What does RDMS stand for?
+[13/30] 4185ms (ttft 3587ms)  Explain the relationship between replication and data consistency challenges in distributed databases.
+[14/30] 4364ms (ttft 3790ms)  Compare how SQL and NoSQL databases scale, and explain why that matters for a high-traffic social media platform.
+[15/30] 3612ms (ttft 3400ms)  What is busy waiting?
+[16/30] 4131ms (ttft 3591ms)  Compare how SQL and NoSQL databases scale, and explain why that matters for a high-traffic social media platform.
+[17/30] 4173ms (ttft 3561ms)  Which scheduling algorithm can cause starvation, and why does that happen?
+[18/30] 4271ms (ttft 3693ms)  What is the purpose of a system call?
+[19/30] 4312ms (ttft 3606ms)  The database document discusses coordinating data across distributed nodes; the OS document discusses coordinating processes via context switching and locking. What similar coordination challenge do both documents describe?
+[20/30] 4373ms (ttft 4003ms)  What are the three main purposes of an operating system?
+[21/30] 3453ms (ttft 3429ms)  Which state -- stack, heap, or shared memory segments -- is shared between a parent and child process after fork()?
+[22/30] 4808ms (ttft 4474ms)  What specialized hardware features do AI microprocessors commonly include?
+[23/30] 3816ms (ttft 3552ms)  What technologies does the document recommend for processing big data?
+[24/30] 5245ms (ttft 3558ms)  Describe a hybrid computing architecture as explained in the document, and why it combines both processor types.
+[25/30] 3869ms (ttft 3556ms)  What is the Apple M1, and what makes it notable?
+[26/30] 3556ms (ttft 3434ms)  Name two examples of AI microprocessors given in the document.
+[27/30] 4312ms (ttft 3381ms)  Compare the computer architecture of general microprocessors and AI microprocessors, including what each is optimized for.
+[28/30] 4771ms (ttft 3446ms)  Describe a hybrid computing architecture as explained in the document, and why it combines both processor types.
+[29/30] 27758ms (ttft 27490ms)  What is busy waiting?
+[30/30] 3867ms (ttft 3542ms)  What is the Apple M1, and what makes it notable?
+
+--- results ---
+client-side median total:  4287 ms, failures: 0
+client-side median TTFT:   3560 ms
+server p50 / p95 total:     2212 / 3170 ms
+server p50 / p95 TTFT:      614 / 892 ms
+avg tokens:                 689.4
+avg cost/request:           $0.002193
+groundedness:                0.775
+error rate:                  0%
+time share by step: {'evaluate': '0%', 'generate': '42%', 'retrieve': '58%'}

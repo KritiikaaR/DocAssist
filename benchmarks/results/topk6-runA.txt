@@ -1,0 +1,45 @@
+Uploaded 'Introduction to Database.pdf' -> 11 chunks, used_ocr=False
+Uploaded 'CE305_SIgnaturePaper_19702_Kritika.pdf' -> 15 chunks, used_ocr=False
+Uploaded 'Midterm Exam.pdf' -> 33 chunks, used_ocr=False
+Active documents: ['Introduction to Database.pdf', 'CE305_SIgnaturePaper_19702_Kritika.pdf', 'Midterm Exam.pdf']
+[1/30] 5433ms (ttft 4857ms)  List the four steps of the data mining process, in order, with what each involves.
+[2/30] 3563ms (ttft 3320ms)  Name two examples of AI microprocessors given in the document.
+[3/30] 4269ms (ttft 3545ms)  What specialized hardware features do AI microprocessors commonly include?
+[4/30] 4090ms (ttft 3520ms)  Which scheduling algorithm can cause starvation, and why does that happen?
+[5/30] 3884ms (ttft 3401ms)  Which scheduling algorithm can cause starvation, and why does that happen?
+[6/30] 3967ms (ttft 3395ms)  What specialized hardware features do AI microprocessors commonly include?
+[7/30] 4565ms (ttft 4192ms)  What is a distributed database?
+[8/30] 3907ms (ttft 3717ms)  What technologies does the document recommend for processing big data?
+[9/30] 3576ms (ttft 3327ms)  What technologies does the document recommend for processing big data?
+[10/30] 4020ms (ttft 3589ms)  What is the purpose of a system call?
+[11/30] 4325ms (ttft 3370ms)  Explain the relationship between replication and data consistency challenges in distributed databases.
+[12/30] 3855ms (ttft 3292ms)  Explain the relationship between replication and data consistency challenges in distributed databases.
+[13/30] 3687ms (ttft 3351ms)  What are the three characteristics of big data described in the document?
+[14/30] 4475ms (ttft 4075ms)  What are the three main purposes of an operating system?
+[15/30] 3755ms (ttft 3721ms)  Name two examples of AI microprocessors given in the document.
+[16/30] 4682ms (ttft 3367ms)  Compare how SQL and NoSQL databases scale, and explain why that matters for a high-traffic social media platform.
+[17/30] 3519ms (ttft 3425ms)  What does RDMS stand for?
+[18/30] 4123ms (ttft 3244ms)  The database document discusses coordinating data across distributed nodes; the OS document discusses coordinating processes via context switching and locking. What similar coordination challenge do both documents describe?
+[19/30] 4544ms (ttft 4232ms)  What is a distributed database?
+[20/30] 5247ms (ttft 3260ms)  The AI microprocessor document and the OS document both discuss matching specialized hardware or mechanisms to a workload (AI accelerators vs. spinlocks/mutexes for short vs. long critical sections). What's the common theme in how each document says the right tool should be chosen?
+[21/30] 3748ms (ttft 3460ms)  What are the three main purposes of an operating system?
+[22/30] 3860ms (ttft 3519ms)  Why would a banking application be better suited to SQL than NoSQL, according to the document?
+[23/30] 4524ms (ttft 3332ms)  The AI microprocessor document and the OS document both discuss matching specialized hardware or mechanisms to a workload (AI accelerators vs. spinlocks/mutexes for short vs. long critical sections). What's the common theme in how each document says the right tool should be chosen?
+[24/30] 4036ms (ttft 3467ms)  List the four steps of the data mining process, in order, with what each involves.
+[25/30] 4392ms (ttft 3764ms)  The database document discusses coordinating data across distributed nodes; the OS document discusses coordinating processes via context switching and locking. What similar coordination challenge do both documents describe?
+[26/30] 5166ms (ttft 4186ms)  Compare the computer architecture of general microprocessors and AI microprocessors, including what each is optimized for.
+[27/30] 4084ms (ttft 3854ms)  What technologies does the document recommend for processing big data?
+[28/30] 4251ms (ttft 3836ms)  Which state -- stack, heap, or shared memory segments -- is shared between a parent and child process after fork()?
+[29/30] 3548ms (ttft 3279ms)  What is busy waiting?
+[30/30] 4120ms (ttft 3575ms)  How does the dining-philosophers problem illustrate deadlock?
+
+--- results ---
+client-side median total:  4087 ms, failures: 0
+client-side median TTFT:   3493 ms
+server p50 / p95 total:     1996 / 3072 ms
+server p50 / p95 TTFT:      655 / 1113 ms
+avg tokens:                 1152.0
+avg cost/request:           $0.003310
+groundedness:                0.817
+error rate:                  0%
+time share by step: {'evaluate': '0%', 'generate': '60%', 'retrieve': '40%'}
