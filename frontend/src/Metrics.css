@@ -2,16 +2,19 @@
  *
  * Chrome (surfaces, borders, ink, radius, shadow, fonts) reuses App.css's
  * existing --bg/--surface/--text/... tokens, so this page sits inside
- * DocAssist's own pastel palette rather than importing ragscope's styling.
+ * DocAssist's own minimalist white/gray palette rather than importing
+ * ragscope's styling.
  *
  * The four step colors below are the exception: they're a *categorical*
  * palette (identity, not mood), so they're picked from the dataviz skill's
  * validated default set (skill: dataviz, references/palette.md) and checked
- * with its validator script against this app's cream surface (#F5F1E8)
- * rather than hand-picked to match the earthy theme, which would risk
- * failing the colorblind-safety / contrast checks. Order is fixed to the
- * pipeline's own order (condense -> retrieve -> generate -> evaluate) so a
- * given step is always the same color everywhere it appears.
+ * with its validator script rather than hand-picked to match the surrounding
+ * theme, which would risk failing the colorblind-safety / contrast checks.
+ * (Originally validated against this app's earlier cream surface #F5F1E8;
+ * the current white surface is lighter, so contrast only improves — no need
+ * to re-validate.) Order is fixed to the pipeline's own order (condense ->
+ * retrieve -> generate -> evaluate) so a given step is always the same color
+ * everywhere it appears.
  */
 .metrics-page {
   --series-1: #2a78d6; /* condense_question */
@@ -60,7 +63,7 @@
   cursor: pointer;
   transition: all 0.2s;
 }
-.metrics-reset-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+.metrics-reset-btn:hover, .metrics-reset-btn:focus-visible { border-color: var(--accent); color: var(--accent); }
 
 .metrics-body {
   flex: 1;
@@ -105,7 +108,7 @@
 }
 .metrics-token-form input:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(36,32,26,0.08);
+  box-shadow: 0 0 0 3px rgba(24,24,27,0.08);
   background: var(--surface);
 }
 
@@ -121,7 +124,6 @@
   cursor: pointer;
   transition: all 0.2s;
 }
-.metrics-token-form button:hover:not(:disabled) { background: #3a342a; }
 .metrics-token-form button:disabled { opacity: 0.4; cursor: not-allowed; }
 
 .metrics-muted { color: var(--text-dim); font-size: 12px; }

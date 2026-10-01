@@ -1,9 +1,9 @@
 from flask import Flask, request, jsonify, Response, stream_with_context
 from flask_cors import CORS
 import os
-import json
 from dotenv import load_dotenv
 from rag import RAGPipeline
+from sse import sse_event
 
 from observability import config as obs_config
 from observability.store import RequestStore
@@ -73,10 +73,10 @@ def query():
                 if isinstance(chunk, dict) and "sources" in chunk:
                     sources = chunk["sources"]
                 else:
-                    yield f"data: {json.dumps({'token': chunk})}\n\n"
-            yield f"data: {json.dumps({'done': True, 'sources': sources})}\n\n"
+                    yield sse_event({"token": chunk})
+            yield sse_event({"done": True, "sources": sources})
         except Exception as e:
-            yield f"data: {json.dumps({'error': str(e)})}\n\n"
+            yield sse_event({"error": str(e)})
 
     return Response(stream_with_context(generate()), mimetype="text/event-stream",
                     headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
@@ -87,10 +87,10 @@ def summarize(filename):
     def generate():
         try:
             for chunk in rag.summarize_stream(filename):
-                yield f"data: {json.dumps({'token': chunk})}\n\n"
-            yield f"data: {json.dumps({'done': True})}\n\n"
+                yield sse_event({"token": chunk})
+            yield sse_event({"done": True})
         except Exception as e:
-            yield f"data: {json.dumps({'error': str(e)})}\n\n"
+            yield sse_event({"error": str(e)})
 
     return Response(stream_with_context(generate()), mimetype="text/event-stream",
                     headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
