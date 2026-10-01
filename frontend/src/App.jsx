@@ -1,10 +1,16 @@
 import { useState, useRef, useEffect } from "react";
-import katex from "katex";
-import { BlockMath, InlineMath } from "react-katex";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import remarkMath from "remark-math";
+import rehypeKatex from "rehype-katex";
 import "./App.css";
 import Landing from "./Landing";
 import QuizMode from "./QuizMode";
 import Metrics from "./Metrics";
+import Footer from "./Footer";
+
+const GITHUB_REPO_URL = "https://github.com/KritiikaaR/DocAssist";
+const GITHUB_PROFILE_URL = "https://github.com/KritiikaaR";
 
 const API = "http://localhost:5000";
 
@@ -14,47 +20,38 @@ function formatTime(date) {
   return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
-// Splits message text on LaTeX delimiters ($$...$$, \[...\], \(...\), $...$) and
-// renders math segments with KaTeX, falling back to raw text if a segment fails to parse.
-const MATH_REGEX = /\$\$([\s\S]+?)\$\$|\\\[([\s\S]+?)\\\]|\\\(([\s\S]+?)\\\)|\$([^$\n]+?)\$/g;
+// remark-math only recognizes $...$ / $$...$$ — the model (and the old hand-rolled
+// renderer this replaced) also used LaTeX-native \( \) / \[ \] delimiters, so those
+// get converted before handing the text to react-markdown. Plain string replace,
+// not full math parsing — remark-math does the actual parsing.
+function normalizeMathDelimiters(text) {
+  return text
+    .replace(/\\\[([\s\S]+?)\\\]/g, (_, expr) => `$$${expr}$$`)
+    .replace(/\\\(([\s\S]+?)\\\)/g, (_, expr) => `$${expr}$`);
+}
 
+const MARKDOWN_COMPONENTS = {
+  // Open links in a new tab rather than navigating the SPA away.
+  a: ({ node, ...props }) => <a {...props} target="_blank" rel="noopener noreferrer" />,
+  // Wrap tables for horizontal scroll instead of overflowing the bubble.
+  table: ({ node, ...props }) => (
+    <div className="md-table-wrap"><table {...props} /></div>
+  ),
+};
+
+// No rehype-raw: any literal HTML in the model's output is escaped as plain text
+// instead of being rendered, on purpose — the model's output isn't trusted input.
 function renderMessage(text) {
   if (!text) return null;
-
-  const segments = [];
-  let lastIndex = 0;
-  let key = 0;
-  let match;
-
-  MATH_REGEX.lastIndex = 0;
-  while ((match = MATH_REGEX.exec(text)) !== null) {
-    if (match.index > lastIndex) {
-      segments.push(<span key={key++}>{text.slice(lastIndex, match.index)}</span>);
-    }
-
-    const [full, dollarBlock, bracketBlock, parenInline, dollarInline] = match;
-    const isBlock = dollarBlock !== undefined || bracketBlock !== undefined;
-    const expr = dollarBlock ?? bracketBlock ?? parenInline ?? dollarInline ?? "";
-
-    try {
-      // Validate parseability up front — react-katex would otherwise throw during
-      // React's render phase, which a try/catch around JSX creation can't catch.
-      katex.renderToString(expr, { throwOnError: true, displayMode: isBlock });
-      segments.push(
-        isBlock ? <BlockMath key={key++} math={expr} /> : <InlineMath key={key++} math={expr} />
-      );
-    } catch {
-      segments.push(<span key={key++}>{full}</span>);
-    }
-
-    lastIndex = match.index + full.length;
-  }
-
-  if (lastIndex < text.length) {
-    segments.push(<span key={key++}>{text.slice(lastIndex)}</span>);
-  }
-
-  return segments;
+  return (
+    <ReactMarkdown
+      remarkPlugins={[remarkGfm, remarkMath]}
+      rehypePlugins={[rehypeKatex]}
+      components={MARKDOWN_COMPONENTS}
+    >
+      {normalizeMathDelimiters(text)}
+    </ReactMarkdown>
+  );
 }
 
 function IconSparkle(props) {
@@ -463,11 +460,14 @@ function App() {
 
   if (mode === "landing") {
     return (
-      <Landing
-        onSelectAssist={() => setMode("assist")}
-        onSelectQuiz={() => setMode("quiz")}
-        onSelectMetrics={() => goToMode("metrics")}
-      />
+      <>
+        <Landing
+          onSelectAssist={() => setMode("assist")}
+          onSelectQuiz={() => setMode("quiz")}
+          onSelectMetrics={() => goToMode("metrics")}
+        />
+        <Footer repoUrl={GITHUB_REPO_URL} profileUrl={GITHUB_PROFILE_URL} />
+      </>
     );
   }
 
