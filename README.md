@@ -146,8 +146,6 @@ Set `VITE_METRICS_ENABLED=true` (frontend `.env`) to show the "Metrics" card on 
 
 If `METRICS_ADMIN_TOKEN` is set on the backend, the dashboard prompts for it at runtime (a 401 triggers a small "enter admin token" form) rather than reading it from a build-time env var — Vite inlines `import.meta.env.*` into the shipped JS bundle, so a build-time token would just be sitting in plain text in devtools for anyone to read. The entered token lives only in React state for that page load; nothing is written to localStorage, sessionStorage, or a cookie.
 
-![Metrics dashboard](docs/metrics-dashboard.png)
-*(screenshot placeholder — run the app, ask a few questions, and drop a screenshot of `/metrics` here)*
 
 ### Benchmark
 
